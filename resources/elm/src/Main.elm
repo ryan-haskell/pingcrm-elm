@@ -1,8 +1,11 @@
 module Main exposing (main)
 
 import Browser
+import Flags exposing (Flags)
 import Html exposing (Html)
 import Json.Decode
+import Pages
+import Pages.Dashboard.Index
 
 
 main : Program Flags Model Msg
@@ -19,24 +22,20 @@ main =
 -- MODEL
 
 
-type alias Flags =
-    { component : String
-    , props : Json.Decode.Value
-    , url : String
-    , version : String
-    }
-
-
 type alias Model =
-    { flags : Flags
+    { page : Pages.Model
     }
 
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( { flags = flags
+    let
+        ( page, pageCmd ) =
+            Pages.init flags.pageData
+    in
+    ( { page = page
       }
-    , Cmd.none
+    , Cmd.map Page pageCmd
     )
 
 
@@ -45,19 +44,23 @@ init flags =
 
 
 type Msg
-    = DoNothing
+    = Page Pages.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        DoNothing ->
-            ( model, Cmd.none )
+        Page pageMsg ->
+            Pages.update pageMsg model.page
+                |> Tuple.mapBoth
+                    (\page -> { model | page = page })
+                    (Cmd.map Page)
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    Pages.subscriptions model.page
+        |> Sub.map Page
 
 
 
@@ -66,4 +69,5 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-    Html.text ("Flags: " ++ Debug.toString model.flags)
+    Pages.view model.page
+        |> Html.map Page

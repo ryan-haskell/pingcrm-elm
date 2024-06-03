@@ -3,12 +3,12 @@ import Main from './src/Main.elm'
 
 const node = document.getElementById('app')
 
-let flags = {}
+let pageData = {}
 try {
-  flags = JSON.parse(node.getAttribute('data-page'))
-  console.dir(flags)
+  pageData = JSON.parse(node.getAttribute('data-page'))
+  console.dir('InertiaJS', pageData.props)
 } catch (err) {
   console.error('Could not get inertia data', err)
 }
 
-let app = Main.init({ node, flags })
+let app = Main.init({ node, flags: { pageData } })
