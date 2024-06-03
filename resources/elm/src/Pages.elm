@@ -10,10 +10,12 @@ module Pages exposing
 import Html exposing (Html)
 import InertiaJs exposing (PageData)
 import Json.Decode
+import Pages.Contacts.Index
 import Pages.Dashboard.Index
 import Pages.Error404
 import Pages.Error500
 import Pages.Organizations.Index
+import Pages.Reports.Index
 
 
 
@@ -23,6 +25,8 @@ import Pages.Organizations.Index
 type Model
     = Model_Dashboard_Index Pages.Dashboard.Index.Model
     | Model_Organizations_Index Pages.Organizations.Index.Model
+    | Model_Contacts_Index Pages.Contacts.Index.Model
+    | Model_Reports_Index Pages.Reports.Index.Model
     | Model_Error404 Pages.Error404.Model
     | Model_Error500 Pages.Error500.Model
 
@@ -48,6 +52,24 @@ init pageData =
                 , toMsg = Msg_Organizations_Index
                 }
 
+        "Contacts/Index" ->
+            initPage
+                { pageData = pageData
+                , decoder = Pages.Contacts.Index.decoder
+                , init = Pages.Contacts.Index.init
+                , toModel = Model_Contacts_Index
+                , toMsg = Msg_Contacts_Index
+                }
+
+        "Reports/Index" ->
+            initPage
+                { pageData = pageData
+                , decoder = Pages.Reports.Index.decoder
+                , init = Pages.Reports.Index.init
+                , toModel = Model_Reports_Index
+                , toMsg = Msg_Reports_Index
+                }
+
         _ ->
             Pages.Error404.init
                 { page = pageData.component
@@ -64,6 +86,8 @@ init pageData =
 type Msg
     = Msg_Dashboard_Index Pages.Dashboard.Index.Msg
     | Msg_Organizations_Index Pages.Organizations.Index.Msg
+    | Msg_Contacts_Index Pages.Contacts.Index.Msg
+    | Msg_Reports_Index Pages.Reports.Index.Msg
     | Msg_Error404 Pages.Error404.Msg
     | Msg_Error500 Pages.Error500.Msg
 
@@ -82,6 +106,18 @@ update msg model =
                 |> Tuple.mapBoth
                     Model_Organizations_Index
                     (Cmd.map Msg_Organizations_Index)
+
+        ( Msg_Contacts_Index pageMsg, Model_Contacts_Index pageModel ) ->
+            Pages.Contacts.Index.update pageMsg pageModel
+                |> Tuple.mapBoth
+                    Model_Contacts_Index
+                    (Cmd.map Msg_Contacts_Index)
+
+        ( Msg_Reports_Index pageMsg, Model_Reports_Index pageModel ) ->
+            Pages.Reports.Index.update pageMsg pageModel
+                |> Tuple.mapBoth
+                    Model_Reports_Index
+                    (Cmd.map Msg_Reports_Index)
 
         ( Msg_Error404 pageMsg, Model_Error404 pageModel ) ->
             Pages.Error404.update pageMsg pageModel
@@ -112,6 +148,14 @@ subscriptions model =
             Pages.Organizations.Index.subscriptions pageModel
                 |> Sub.map Msg_Organizations_Index
 
+        Model_Contacts_Index pageModel ->
+            Pages.Contacts.Index.subscriptions pageModel
+                |> Sub.map Msg_Contacts_Index
+
+        Model_Reports_Index pageModel ->
+            Pages.Reports.Index.subscriptions pageModel
+                |> Sub.map Msg_Reports_Index
+
         Model_Error404 pageModel ->
             Pages.Error404.subscriptions pageModel
                 |> Sub.map Msg_Error404
@@ -135,6 +179,14 @@ view model =
         Model_Organizations_Index pageModel ->
             Pages.Organizations.Index.view pageModel
                 |> Html.map Msg_Organizations_Index
+
+        Model_Contacts_Index pageModel ->
+            Pages.Contacts.Index.view pageModel
+                |> Html.map Msg_Contacts_Index
+
+        Model_Reports_Index pageModel ->
+            Pages.Reports.Index.view pageModel
+                |> Html.map Msg_Reports_Index
 
         Model_Error404 pageModel ->
             Pages.Error404.view pageModel
