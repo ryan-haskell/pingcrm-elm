@@ -7,9 +7,11 @@ module Pages exposing
     , view
     )
 
+import Extra.Document exposing (Document)
 import Html exposing (Html)
-import InertiaJs exposing (PageData)
+import InertiaJs.PageData exposing (PageData)
 import Json.Decode
+import Pages.Auth.Login
 import Pages.Contacts.Index
 import Pages.Dashboard.Index
 import Pages.Error404
@@ -23,7 +25,8 @@ import Pages.Reports.Index
 
 
 type Model
-    = Model_Dashboard_Index Pages.Dashboard.Index.Model
+    = Model_Auth_Login Pages.Auth.Login.Model
+    | Model_Dashboard_Index Pages.Dashboard.Index.Model
     | Model_Organizations_Index Pages.Organizations.Index.Model
     | Model_Contacts_Index Pages.Contacts.Index.Model
     | Model_Reports_Index Pages.Reports.Index.Model
@@ -34,6 +37,15 @@ type Model
 init : PageData -> ( Model, Cmd Msg )
 init pageData =
     case pageData.component of
+        "Auth/Login" ->
+            initPage
+                { pageData = pageData
+                , decoder = Pages.Auth.Login.decoder
+                , init = Pages.Auth.Login.init
+                , toModel = Model_Auth_Login
+                , toMsg = Msg_Auth_Login
+                }
+
         "Dashboard/Index" ->
             initPage
                 { pageData = pageData
@@ -84,7 +96,8 @@ init pageData =
 
 
 type Msg
-    = Msg_Dashboard_Index Pages.Dashboard.Index.Msg
+    = Msg_Auth_Login Pages.Auth.Login.Msg
+    | Msg_Dashboard_Index Pages.Dashboard.Index.Msg
     | Msg_Organizations_Index Pages.Organizations.Index.Msg
     | Msg_Contacts_Index Pages.Contacts.Index.Msg
     | Msg_Reports_Index Pages.Reports.Index.Msg
@@ -95,6 +108,12 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case ( msg, model ) of
+        ( Msg_Auth_Login pageMsg, Model_Auth_Login pageModel ) ->
+            Pages.Auth.Login.update pageMsg pageModel
+                |> Tuple.mapBoth
+                    Model_Auth_Login
+                    (Cmd.map Msg_Auth_Login)
+
         ( Msg_Dashboard_Index pageMsg, Model_Dashboard_Index pageModel ) ->
             Pages.Dashboard.Index.update pageMsg pageModel
                 |> Tuple.mapBoth
@@ -140,6 +159,10 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     case model of
+        Model_Auth_Login pageModel ->
+            Pages.Auth.Login.subscriptions pageModel
+                |> Sub.map Msg_Auth_Login
+
         Model_Dashboard_Index pageModel ->
             Pages.Dashboard.Index.subscriptions pageModel
                 |> Sub.map Msg_Dashboard_Index
@@ -169,32 +192,36 @@ subscriptions model =
 -- VIEW
 
 
-view : Model -> Html Msg
+view : Model -> Document Msg
 view model =
     case model of
+        Model_Auth_Login pageModel ->
+            Pages.Auth.Login.view pageModel
+                |> Extra.Document.map Msg_Auth_Login
+
         Model_Dashboard_Index pageModel ->
             Pages.Dashboard.Index.view pageModel
-                |> Html.map Msg_Dashboard_Index
+                |> Extra.Document.map Msg_Dashboard_Index
 
         Model_Organizations_Index pageModel ->
             Pages.Organizations.Index.view pageModel
-                |> Html.map Msg_Organizations_Index
+                |> Extra.Document.map Msg_Organizations_Index
 
         Model_Contacts_Index pageModel ->
             Pages.Contacts.Index.view pageModel
-                |> Html.map Msg_Contacts_Index
+                |> Extra.Document.map Msg_Contacts_Index
 
         Model_Reports_Index pageModel ->
             Pages.Reports.Index.view pageModel
-                |> Html.map Msg_Reports_Index
+                |> Extra.Document.map Msg_Reports_Index
 
         Model_Error404 pageModel ->
             Pages.Error404.view pageModel
-                |> Html.map Msg_Error404
+                |> Extra.Document.map Msg_Error404
 
         Model_Error500 pageModel ->
             Pages.Error500.view pageModel
-                |> Html.map Msg_Error500
+                |> Extra.Document.map Msg_Error500
 
 
 

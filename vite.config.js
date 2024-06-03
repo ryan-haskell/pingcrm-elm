@@ -10,6 +10,6 @@ export default defineConfig({
       input: 'resources/elm/app.js',
       refresh: true,
     }),
-    elm({ mode: isInDevelopment ? 'standard' : 'minify' })
+    elm({ mode: isInDevelopment ? 'debug' : 'minify' })
   ],
 })

@@ -12,6 +12,7 @@ module Pages.Error500 exposing
 
 -}
 
+import Browser exposing (Document)
 import Html exposing (Html)
 import Json.Decode
 
@@ -67,13 +68,17 @@ subscriptions model =
 -- VIEW
 
 
-view : Model -> Html msg
+view : Model -> Document Msg
 view { props } =
-    Html.div []
-        [ Html.h1 []
-            [ Html.text ("500: Unexpected props for '" ++ props.page ++ "'.")
-            ]
-        , Html.pre []
-            [ Html.text (Json.Decode.errorToString props.error)
+    { title = "500"
+    , body =
+        [ Html.div []
+            [ Html.h1 []
+                [ Html.text ("500: Unexpected props for '" ++ props.page ++ "'.")
+                ]
+            , Html.pre []
+                [ Html.text (Json.Decode.errorToString props.error)
+                ]
             ]
         ]
+    }

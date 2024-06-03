@@ -12,6 +12,7 @@ module Pages.Dashboard.Index exposing
 
 -}
 
+import Browser exposing (Document)
 import Domain.Auth exposing (Auth)
 import Html exposing (..)
 import Html.Attributes exposing (attribute, class, href)
@@ -75,10 +76,11 @@ subscriptions model =
 -- VIEW
 
 
-view : Model -> Html Msg
+view : Model -> Document Msg
 view model =
     Layouts.Sidebar.view
-        { user = model.props.auth.user
+        { title = "Dashboard"
+        , user = model.props.auth.user
         , content =
             [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Dashboard" ]
             , p [ class "mb-8 leading-normal" ]

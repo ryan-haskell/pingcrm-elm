@@ -6,7 +6,7 @@ const node = document.getElementById('app')
 let pageData = {}
 try {
   pageData = JSON.parse(node.getAttribute('data-page'))
-  console.dir('InertiaJS', pageData.props)
+  console.dir('pageData', pageData)
 } catch (err) {
   console.error('Could not get inertia data', err)
 }

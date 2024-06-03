@@ -1,5 +1,6 @@
 module Layouts.Sidebar exposing (view)
 
+import Browser exposing (Document)
 import Components.Icon
 import Components.Logo
 import Html exposing (..)
@@ -7,17 +8,22 @@ import Html.Attributes as Attr exposing (attribute, class, href, type_)
 
 
 view :
-    { user : User user account
+    { title : String
+    , user : User user account
     , content : List (Html msg)
     }
-    -> Html msg
-view { user, content } =
-    div [ class "md:flex md:flex-col" ]
-        [ div [ class "md:flex md:flex-col md:h-screen" ]
-            [ viewNavbar { user = user }
-            , viewSidebarAndMainContent { content = content }
+    -> Document msg
+view { title, user, content } =
+    { title = title
+    , body =
+        [ div [ class "md:flex md:flex-col" ]
+            [ div [ class "md:flex md:flex-col md:h-screen" ]
+                [ viewNavbar { user = user }
+                , viewSidebarAndMainContent { content = content }
+                ]
             ]
         ]
+    }
 
 
 type alias User user account =

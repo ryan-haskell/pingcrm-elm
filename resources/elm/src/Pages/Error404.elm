@@ -12,6 +12,7 @@ module Pages.Error404 exposing
 
 -}
 
+import Browser exposing (Document)
 import Html exposing (Html)
 import Json.Decode
 
@@ -66,10 +67,12 @@ subscriptions model =
 -- VIEW
 
 
-view : Model -> Html msg
+view : Model -> Document Msg
 view { props } =
-    Html.div []
+    { title = "404"
+    , body =
         [ Html.h1 []
             [ Html.text ("404: No handler for '" ++ props.page ++ "'.")
             ]
         ]
+    }

@@ -1,6 +1,6 @@
 module Flags exposing (Flags)
 
-import InertiaJs exposing (PageData)
+import InertiaJs.PageData exposing (PageData)
 import Json.Decode
 
 
