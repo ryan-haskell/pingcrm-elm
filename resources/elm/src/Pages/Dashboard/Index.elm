@@ -16,6 +16,7 @@ import Domain.Auth exposing (Auth)
 import Html exposing (..)
 import Html.Attributes exposing (attribute, class, href)
 import Json.Decode
+import Layouts.Sidebar
 
 
 
@@ -76,22 +77,18 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-    div
-        [ class "px-4 py-8 md:flex-1 md:p-12 md:overflow-y-auto"
-        , attribute "scroll-region" ""
-            |> Debug.log "NOTE: Is scroll-region an Inertia thing?"
-        ]
-        [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Dashboard" ]
-        , p [ class "mb-8 leading-normal" ]
-            [ text
-                ("Hey, ${user}! Welcome to Ping CRM, a demo app designed to help illustrate how "
-                    |> String.replace "${user}" model.props.auth.user.first_name
-                )
-            , a
-                [ class "text-indigo-500 hover:text-orange-600 underline"
-                , href "https://inertiajs.com"
+    Layouts.Sidebar.view
+        { user = model.props.auth.user
+        , content =
+            [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Dashboard" ]
+            , p [ class "mb-8 leading-normal" ]
+                [ text "Hey, there! Welcome to Ping CRM, a demo app designed to help illustrate how "
+                , a
+                    [ class "text-indigo-500 hover:text-orange-600 underline"
+                    , href "https://inertiajs.com"
+                    ]
+                    [ text "Inertia.js" ]
+                , text " works."
                 ]
-                [ text "Inertia.js" ]
-            , text " works."
             ]
-        ]
+        }
