@@ -2,6 +2,7 @@ module Main exposing (main)
 
 import Browser
 import Html exposing (Html)
+import Json.Decode
 
 
 main : Program Flags Model Msg
@@ -19,16 +20,24 @@ main =
 
 
 type alias Flags =
-    ()
+    { component : String
+    , props : Json.Decode.Value
+    , url : String
+    , version : String
+    }
 
 
 type alias Model =
-    {}
+    { flags : Flags
+    }
 
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( {}, Cmd.none )
+    ( { flags = flags
+      }
+    , Cmd.none
+    )
 
 
 
@@ -57,4 +66,4 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-    Html.text "Hello!"
+    Html.text ("Flags: " ++ Debug.toString model.flags)
