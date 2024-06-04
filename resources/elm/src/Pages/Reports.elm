@@ -1,4 +1,4 @@
-module Pages.Contacts.Index exposing
+module Pages.Reports exposing
     ( Props, decoder
     , Model, Msg
     , init, subscriptions, update, view
@@ -69,9 +69,7 @@ update : Context -> Msg -> Model -> ( Model, Effect Msg )
 update ctx msg model =
     case msg of
         Sidebar sidebarMsg ->
-            ( model
-            , Effect.sendSidebarMsg sidebarMsg
-            )
+            ( model, Effect.sendSidebarMsg sidebarMsg )
 
 
 subscriptions : Context -> Model -> Sub Msg
@@ -90,12 +88,12 @@ view ctx model =
         , flash = model.props.flash
         , toMsg = Sidebar
         , url = ctx.url
-        , title = "Contacts"
+        , title = "Reports"
         , user = model.props.auth.user
         , content =
-            [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Contacts" ]
+            [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Reports" ]
             , p [ class "mb-8 leading-normal" ]
-                [ text "TODO: Implement the contacts page"
+                [ text "The reports page was blank in the original demo!"
                 ]
             ]
         }

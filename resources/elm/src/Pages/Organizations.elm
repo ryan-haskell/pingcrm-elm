@@ -1,4 +1,4 @@
-module Pages.Reports.Index exposing
+module Pages.Organizations exposing
     ( Props, decoder
     , Model, Msg
     , init, subscriptions, update, view
@@ -88,12 +88,12 @@ view ctx model =
         , flash = model.props.flash
         , toMsg = Sidebar
         , url = ctx.url
-        , title = "Reports"
+        , title = "Organizations"
         , user = model.props.auth.user
         , content =
-            [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Reports" ]
+            [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Organizations" ]
             , p [ class "mb-8 leading-normal" ]
-                [ text "The reports page was blank in the original demo!"
+                [ text "TODO: Implement the organizations page"
                 ]
             ]
         }

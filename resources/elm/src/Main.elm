@@ -14,7 +14,7 @@ import Inertia.PageData exposing (PageData)
 import Json.Decode
 import Layouts.Sidebar
 import Pages
-import Pages.Dashboard.Index
+import Pages.Dashboard
 import Process
 import Task
 import Url exposing (Url)

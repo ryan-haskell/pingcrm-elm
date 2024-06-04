@@ -1,4 +1,4 @@
-module Pages.Organizations.Index exposing
+module Pages.Dashboard exposing
     ( Props, decoder
     , Model, Msg
     , init, subscriptions, update, view
@@ -88,12 +88,18 @@ view ctx model =
         , flash = model.props.flash
         , toMsg = Sidebar
         , url = ctx.url
-        , title = "Organizations"
+        , title = "Dashboard"
         , user = model.props.auth.user
         , content =
-            [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Organizations" ]
+            [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Dashboard" ]
             , p [ class "mb-8 leading-normal" ]
-                [ text "TODO: Implement the organizations page"
+                [ text "Hey, there! Welcome to Ping CRM, a demo app designed to help illustrate how "
+                , a
+                    [ class "text-indigo-500 hover:text-orange-600 underline"
+                    , href "https://inertiajs.com"
+                    ]
+                    [ text "Inertia.js" ]
+                , text " works."
                 ]
             ]
         }

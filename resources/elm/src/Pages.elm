@@ -13,13 +13,13 @@ import Extra.Document exposing (Document)
 import Html exposing (Html)
 import Inertia.PageData exposing (PageData)
 import Json.Decode
-import Pages.Auth.Login
-import Pages.Contacts.Index
-import Pages.Dashboard.Index
+import Pages.Contacts
+import Pages.Dashboard
 import Pages.Error404
 import Pages.Error500
-import Pages.Organizations.Index
-import Pages.Reports.Index
+import Pages.Login
+import Pages.Organizations
+import Pages.Reports
 
 
 
@@ -27,11 +27,11 @@ import Pages.Reports.Index
 
 
 type Model
-    = Model_Auth_Login Pages.Auth.Login.Model
-    | Model_Dashboard_Index Pages.Dashboard.Index.Model
-    | Model_Organizations_Index Pages.Organizations.Index.Model
-    | Model_Contacts_Index Pages.Contacts.Index.Model
-    | Model_Reports_Index Pages.Reports.Index.Model
+    = Model_Login Pages.Login.Model
+    | Model_Dashboard Pages.Dashboard.Model
+    | Model_Organizations Pages.Organizations.Model
+    | Model_Contacts Pages.Contacts.Model
+    | Model_Reports Pages.Reports.Model
     | Model_Error404 Pages.Error404.Model
     | Model_Error500 Pages.Error500.Model
 
@@ -46,50 +46,50 @@ init context pageData =
             initPage
                 { context = context
                 , pageData = pageData
-                , decoder = Pages.Auth.Login.decoder
-                , init = Pages.Auth.Login.init
-                , toModel = Model_Auth_Login
-                , toMsg = Msg_Auth_Login
+                , decoder = Pages.Login.decoder
+                , init = Pages.Login.init
+                , toModel = Model_Login
+                , toMsg = Msg_Login
                 }
 
         "Dashboard/Index" ->
             initPage
                 { context = context
                 , pageData = pageData
-                , decoder = Pages.Dashboard.Index.decoder
-                , init = Pages.Dashboard.Index.init
-                , toModel = Model_Dashboard_Index
-                , toMsg = Msg_Dashboard_Index
+                , decoder = Pages.Dashboard.decoder
+                , init = Pages.Dashboard.init
+                , toModel = Model_Dashboard
+                , toMsg = Msg_Dashboard
                 }
 
         "Organizations/Index" ->
             initPage
                 { context = context
                 , pageData = pageData
-                , decoder = Pages.Organizations.Index.decoder
-                , init = Pages.Organizations.Index.init
-                , toModel = Model_Organizations_Index
-                , toMsg = Msg_Organizations_Index
+                , decoder = Pages.Organizations.decoder
+                , init = Pages.Organizations.init
+                , toModel = Model_Organizations
+                , toMsg = Msg_Organizations
                 }
 
         "Contacts/Index" ->
             initPage
                 { context = context
                 , pageData = pageData
-                , decoder = Pages.Contacts.Index.decoder
-                , init = Pages.Contacts.Index.init
-                , toModel = Model_Contacts_Index
-                , toMsg = Msg_Contacts_Index
+                , decoder = Pages.Contacts.decoder
+                , init = Pages.Contacts.init
+                , toModel = Model_Contacts
+                , toMsg = Msg_Contacts
                 }
 
         "Reports/Index" ->
             initPage
                 { context = context
                 , pageData = pageData
-                , decoder = Pages.Reports.Index.decoder
-                , init = Pages.Reports.Index.init
-                , toModel = Model_Reports_Index
-                , toMsg = Msg_Reports_Index
+                , decoder = Pages.Reports.decoder
+                , init = Pages.Reports.init
+                , toModel = Model_Reports
+                , toMsg = Msg_Reports
                 }
 
         _ ->
@@ -106,11 +106,11 @@ init context pageData =
 
 
 type Msg
-    = Msg_Auth_Login Pages.Auth.Login.Msg
-    | Msg_Dashboard_Index Pages.Dashboard.Index.Msg
-    | Msg_Organizations_Index Pages.Organizations.Index.Msg
-    | Msg_Contacts_Index Pages.Contacts.Index.Msg
-    | Msg_Reports_Index Pages.Reports.Index.Msg
+    = Msg_Login Pages.Login.Msg
+    | Msg_Dashboard Pages.Dashboard.Msg
+    | Msg_Organizations Pages.Organizations.Msg
+    | Msg_Contacts Pages.Contacts.Msg
+    | Msg_Reports Pages.Reports.Msg
     | Msg_Error404 Pages.Error404.Msg
     | Msg_Error500 Pages.Error500.Msg
 
@@ -118,35 +118,35 @@ type Msg
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
 update ctx msg model =
     case ( msg, model ) of
-        ( Msg_Auth_Login pageMsg, Model_Auth_Login pageModel ) ->
-            Pages.Auth.Login.update ctx pageMsg pageModel
+        ( Msg_Login pageMsg, Model_Login pageModel ) ->
+            Pages.Login.update ctx pageMsg pageModel
                 |> Tuple.mapBoth
-                    Model_Auth_Login
-                    (Effect.map Msg_Auth_Login)
+                    Model_Login
+                    (Effect.map Msg_Login)
 
-        ( Msg_Dashboard_Index pageMsg, Model_Dashboard_Index pageModel ) ->
-            Pages.Dashboard.Index.update ctx pageMsg pageModel
+        ( Msg_Dashboard pageMsg, Model_Dashboard pageModel ) ->
+            Pages.Dashboard.update ctx pageMsg pageModel
                 |> Tuple.mapBoth
-                    Model_Dashboard_Index
-                    (Effect.map Msg_Dashboard_Index)
+                    Model_Dashboard
+                    (Effect.map Msg_Dashboard)
 
-        ( Msg_Organizations_Index pageMsg, Model_Organizations_Index pageModel ) ->
-            Pages.Organizations.Index.update ctx pageMsg pageModel
+        ( Msg_Organizations pageMsg, Model_Organizations pageModel ) ->
+            Pages.Organizations.update ctx pageMsg pageModel
                 |> Tuple.mapBoth
-                    Model_Organizations_Index
-                    (Effect.map Msg_Organizations_Index)
+                    Model_Organizations
+                    (Effect.map Msg_Organizations)
 
-        ( Msg_Contacts_Index pageMsg, Model_Contacts_Index pageModel ) ->
-            Pages.Contacts.Index.update ctx pageMsg pageModel
+        ( Msg_Contacts pageMsg, Model_Contacts pageModel ) ->
+            Pages.Contacts.update ctx pageMsg pageModel
                 |> Tuple.mapBoth
-                    Model_Contacts_Index
-                    (Effect.map Msg_Contacts_Index)
+                    Model_Contacts
+                    (Effect.map Msg_Contacts)
 
-        ( Msg_Reports_Index pageMsg, Model_Reports_Index pageModel ) ->
-            Pages.Reports.Index.update ctx pageMsg pageModel
+        ( Msg_Reports pageMsg, Model_Reports pageModel ) ->
+            Pages.Reports.update ctx pageMsg pageModel
                 |> Tuple.mapBoth
-                    Model_Reports_Index
-                    (Effect.map Msg_Reports_Index)
+                    Model_Reports
+                    (Effect.map Msg_Reports)
 
         ( Msg_Error404 pageMsg, Model_Error404 pageModel ) ->
             Pages.Error404.update ctx pageMsg pageModel
@@ -169,25 +169,25 @@ update ctx msg model =
 subscriptions : Context -> Model -> Sub Msg
 subscriptions context model =
     case model of
-        Model_Auth_Login pageModel ->
-            Pages.Auth.Login.subscriptions context pageModel
-                |> Sub.map Msg_Auth_Login
+        Model_Login pageModel ->
+            Pages.Login.subscriptions context pageModel
+                |> Sub.map Msg_Login
 
-        Model_Dashboard_Index pageModel ->
-            Pages.Dashboard.Index.subscriptions context pageModel
-                |> Sub.map Msg_Dashboard_Index
+        Model_Dashboard pageModel ->
+            Pages.Dashboard.subscriptions context pageModel
+                |> Sub.map Msg_Dashboard
 
-        Model_Organizations_Index pageModel ->
-            Pages.Organizations.Index.subscriptions context pageModel
-                |> Sub.map Msg_Organizations_Index
+        Model_Organizations pageModel ->
+            Pages.Organizations.subscriptions context pageModel
+                |> Sub.map Msg_Organizations
 
-        Model_Contacts_Index pageModel ->
-            Pages.Contacts.Index.subscriptions context pageModel
-                |> Sub.map Msg_Contacts_Index
+        Model_Contacts pageModel ->
+            Pages.Contacts.subscriptions context pageModel
+                |> Sub.map Msg_Contacts
 
-        Model_Reports_Index pageModel ->
-            Pages.Reports.Index.subscriptions context pageModel
-                |> Sub.map Msg_Reports_Index
+        Model_Reports pageModel ->
+            Pages.Reports.subscriptions context pageModel
+                |> Sub.map Msg_Reports
 
         Model_Error404 pageModel ->
             Pages.Error404.subscriptions context pageModel
@@ -205,25 +205,25 @@ subscriptions context model =
 view : Context -> Model -> Document Msg
 view context model =
     case model of
-        Model_Auth_Login pageModel ->
-            Pages.Auth.Login.view context pageModel
-                |> Extra.Document.map Msg_Auth_Login
+        Model_Login pageModel ->
+            Pages.Login.view context pageModel
+                |> Extra.Document.map Msg_Login
 
-        Model_Dashboard_Index pageModel ->
-            Pages.Dashboard.Index.view context pageModel
-                |> Extra.Document.map Msg_Dashboard_Index
+        Model_Dashboard pageModel ->
+            Pages.Dashboard.view context pageModel
+                |> Extra.Document.map Msg_Dashboard
 
-        Model_Organizations_Index pageModel ->
-            Pages.Organizations.Index.view context pageModel
-                |> Extra.Document.map Msg_Organizations_Index
+        Model_Organizations pageModel ->
+            Pages.Organizations.view context pageModel
+                |> Extra.Document.map Msg_Organizations
 
-        Model_Contacts_Index pageModel ->
-            Pages.Contacts.Index.view context pageModel
-                |> Extra.Document.map Msg_Contacts_Index
+        Model_Contacts pageModel ->
+            Pages.Contacts.view context pageModel
+                |> Extra.Document.map Msg_Contacts
 
-        Model_Reports_Index pageModel ->
-            Pages.Reports.Index.view context pageModel
-                |> Extra.Document.map Msg_Reports_Index
+        Model_Reports pageModel ->
+            Pages.Reports.view context pageModel
+                |> Extra.Document.map Msg_Reports
 
         Model_Error404 pageModel ->
             Pages.Error404.view context pageModel

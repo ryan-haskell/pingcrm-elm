@@ -1,4 +1,4 @@
-module Pages.Dashboard.Index exposing
+module Pages.Contacts exposing
     ( Props, decoder
     , Model, Msg
     , init, subscriptions, update, view
@@ -69,7 +69,9 @@ update : Context -> Msg -> Model -> ( Model, Effect Msg )
 update ctx msg model =
     case msg of
         Sidebar sidebarMsg ->
-            ( model, Effect.sendSidebarMsg sidebarMsg )
+            ( model
+            , Effect.sendSidebarMsg sidebarMsg
+            )
 
 
 subscriptions : Context -> Model -> Sub Msg
@@ -88,18 +90,12 @@ view ctx model =
         , flash = model.props.flash
         , toMsg = Sidebar
         , url = ctx.url
-        , title = "Dashboard"
+        , title = "Contacts"
         , user = model.props.auth.user
         , content =
-            [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Dashboard" ]
+            [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Contacts" ]
             , p [ class "mb-8 leading-normal" ]
-                [ text "Hey, there! Welcome to Ping CRM, a demo app designed to help illustrate how "
-                , a
-                    [ class "text-indigo-500 hover:text-orange-600 underline"
-                    , href "https://inertiajs.com"
-                    ]
-                    [ text "Inertia.js" ]
-                , text " works."
+                [ text "TODO: Implement the contacts page"
                 ]
             ]
         }
