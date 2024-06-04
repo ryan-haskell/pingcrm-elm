@@ -1,11 +1,18 @@
 module Components.Table exposing
-    ( Props, view
+    ( Props
+    , Model, init
+    , Msg, update
+    , view
     , Column
     )
 
 {-|
 
-@docs Props, view
+@docs Props
+
+@docs Model, init
+@docs Msg, update
+@docs view
 
 @docs Column
 
@@ -13,16 +20,18 @@ module Components.Table exposing
 
 import Components.Icon
 import Context exposing (Context)
+import Effect exposing (Effect)
 import Extra.Url
 import Html exposing (..)
 import Html.Attributes as Attr exposing (class, href, style)
+import Html.Events
 
 
 
--- TABLE
+-- PROPS
 
 
-type alias Props data =
+type alias Props data msg =
     { context : Context
     , name : String
     , baseUrl : String
@@ -30,6 +39,7 @@ type alias Props data =
     , columns : List (Column data)
     , rows : List data
     , lastPage : Int
+    , toMsg : Msg -> msg
     }
 
 
@@ -37,17 +47,85 @@ type alias Column data =
     { name : String, toValue : data -> String }
 
 
-view : Props data -> Html msg
-view props =
+
+-- MODEL
+
+
+type Model
+    = Model
+        { search : String
+        }
+
+
+init : Model
+init =
+    Model { search = "" }
+
+
+
+-- UPDATE
+
+
+type Msg
+    = ChangedSearch String
+    | ClickedReset String
+    | OpenedFilterDropdown
+
+
+update :
+    { msg : Msg
+    , model : Model
+    , toModel : Model -> model
+    , toMsg : Msg -> msg
+    , onSearchChanged : String -> msg
+    }
+    -> ( model, Effect msg )
+update ({ msg, toModel, toMsg } as args) =
+    let
+        (Model model) =
+            args.model
+
+        return : ( Model, Effect Msg ) -> ( model, Effect msg )
+        return tuple =
+            Tuple.mapBoth toModel (Effect.map toMsg) tuple
+    in
+    case msg of
+        ChangedSearch search ->
+            ( Model { model | search = search }
+                |> toModel
+            , args.onSearchChanged search
+                |> Effect.sendMsg
+            )
+
+        ClickedReset baseUrl ->
+            return
+                ( Model model
+                , Effect.pushUrl baseUrl
+                )
+
+        OpenedFilterDropdown ->
+            -- TODO
+            return
+                ( Model model
+                , Effect.none
+                )
+
+
+
+-- VIEW
+
+
+view : Props data msg -> Model -> Html msg
+view props model =
     div []
-        [ viewTableFilters props
+        [ viewTableFilters props model
         , viewTableData props
         , viewTableFooter props
         ]
 
 
-viewTableFilters : Props data -> Html msg
-viewTableFilters props =
+viewTableFilters : Props data msg -> Model -> Html msg
+viewTableFilters props (Model model) =
     div [ class "flex items-center justify-between mb-6" ]
         [ div [ class "flex items-center mr-4 w-full max-w-md" ]
             [ div [ class "flex w-full bg-white rounded shadow" ]
@@ -67,12 +145,15 @@ viewTableFilters props =
                     , Attr.type_ "text"
                     , Attr.name "search"
                     , Attr.placeholder "Search…"
+                    , Html.Events.onInput (ChangedSearch >> props.toMsg)
+                    , Attr.value model.search
                     ]
                     []
                 ]
             , button
                 [ class "ml-3 text-gray-500 hover:text-gray-700 focus:text-indigo-500 text-sm"
                 , Attr.type_ "button"
+                , Html.Events.onClick (props.toMsg (ClickedReset props.baseUrl))
                 ]
                 [ text "Reset" ]
             ]
@@ -84,7 +165,7 @@ viewTableFilters props =
         ]
 
 
-viewTableData : Props data -> Html msg
+viewTableData : Props data msg -> Html msg
 viewTableData props =
     div [ class "bg-white rounded-md shadow overflow-x-auto" ]
         [ table
@@ -95,7 +176,7 @@ viewTableData props =
         ]
 
 
-viewTableHeaderRow : Props data -> Html msg
+viewTableHeaderRow : Props data msg -> Html msg
 viewTableHeaderRow props =
     let
         lastColumnIndex : Int
@@ -120,7 +201,7 @@ viewTableHeaderRow props =
         (List.indexedMap viewCell (List.map .name props.columns))
 
 
-viewTableBodyRow : Props data -> data -> Html msg
+viewTableBodyRow : Props data msg -> data -> Html msg
 viewTableBodyRow props data =
     let
         editUrl : String
@@ -173,7 +254,7 @@ viewTableBodyRow props data =
         )
 
 
-viewTableFooter : Props data -> Html msg
+viewTableFooter : Props data msg -> Html msg
 viewTableFooter props =
     let
         currentPage : Int

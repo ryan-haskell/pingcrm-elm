@@ -118,7 +118,19 @@ update msg model =
                 | url = url
                 , sidebar = Layouts.Sidebar.dismissDropdown model.sidebar
               }
-            , toInertiaNavigateCmd model url
+            , -- TODO: I need this for hitting the back button
+              -- But I want my search on the organizations table to be able to safely update the URL without triggering
+              -- a full inertia backend call, which currently resets the page state because I went with the init all the
+              -- time strategy.
+              -- maybe I should just call init when the component has changed, and fire a separate Pages.onPageDataChanged
+              -- call that my pages can listen for.
+              --
+              -- It's still unclear to me whether typing in the search box should submit an `Effect.get` or an `Effect.pushUrl`
+              -- but I feel like the `pushUrl` will update the URL and page data as I expect it to, without messing with
+              -- my page model (if I do the refactor described above)
+              --
+              -- I've convinced myself this is a good idea! I'm going to refactor after commiting this progress!
+              toInertiaNavigateCmd model url
             )
 
         InertiaPageDataResponded url (Ok pageData) ->
@@ -303,6 +315,9 @@ toCmd model effect =
                 { page = page
                 , error = Json.Decode.errorToString error
                 }
+
+        Effect.PushUrl url ->
+            Nav.pushUrl model.key url
 
 
 toHttpMsg :

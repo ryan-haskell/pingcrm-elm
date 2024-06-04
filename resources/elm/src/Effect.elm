@@ -4,8 +4,9 @@ module Effect exposing
     , sendMsg, sendDelayedMsg
     , sendSidebarMsg
     , showProblem
-    , post, delete
+    , get, post, delete
     , reportJsonDecodeError
+    , pushUrl
     , map
     )
 
@@ -19,9 +20,11 @@ module Effect exposing
 @docs sendSidebarMsg
 @docs showProblem
 
-@docs post, delete
+@docs get, post, delete
 
 @docs reportJsonDecodeError
+
+@docs pushUrl
 
 @docs map
 
@@ -42,6 +45,7 @@ type Effect msg
     | SendSidebarMsg Layouts.Sidebar.Msg.Msg
     | ShowProblem { message : String, details : Maybe String }
     | ReportJsonDecodeError { page : String, error : Json.Decode.Error }
+    | PushUrl String
 
 
 
@@ -70,6 +74,15 @@ sendMsg msg =
 sendDelayedMsg : { delay : Float, msg : msg } -> Effect msg
 sendDelayedMsg { delay, msg } =
     SendDelayedMsg delay msg
+
+
+
+-- URL NAVIGATION
+
+
+pushUrl : String -> Effect msg
+pushUrl url =
+    PushUrl url
 
 
 
@@ -169,6 +182,32 @@ delete options =
         }
 
 
+get :
+    { url : String
+    , decoder : Json.Decode.Decoder props
+    , onResponse : Result Http.Error props -> msg
+    }
+    -> Effect msg
+get options =
+    let
+        decoder : Json.Decode.Decoder msg
+        decoder =
+            options.decoder
+                |> Json.Decode.map (\props -> options.onResponse (Ok props))
+
+        onFailure : Http.Error -> msg
+        onFailure httpError =
+            options.onResponse (Err httpError)
+    in
+    InertiaHttp
+        { method = "GET"
+        , url = options.url
+        , body = Http.emptyBody
+        , decoder = decoder
+        , onFailure = onFailure
+        }
+
+
 
 -- MAP
 
@@ -199,6 +238,9 @@ map fn effect =
 
         ReportJsonDecodeError msg ->
             ReportJsonDecodeError msg
+
+        PushUrl url ->
+            PushUrl url
 
 
 mapHttpRequest : (a -> b) -> HttpRequest a -> HttpRequest b
