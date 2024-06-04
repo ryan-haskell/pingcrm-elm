@@ -93,7 +93,7 @@ view ctx model =
         , content =
             [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Dashboard" ]
             , p [ class "mb-8 leading-normal" ]
-                [ text "Hey, there! Welcome to Ping CRM, a demo app designed to help illustrate how "
+                [ text "Hey there! Welcome to Ping CRM, a demo app designed to help illustrate how "
                 , a
                     [ class "text-indigo-500 hover:text-orange-600 underline"
                     , href "https://inertiajs.com"

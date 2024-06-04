@@ -1,6 +1,8 @@
 module Components.Icon exposing
-    ( check
+    ( arrowDown
+    , check
     , chevronDown
+    , chevronRight
     , close
     , closeCircle
     , contacts
@@ -140,6 +142,32 @@ closeCircle =
         [ Svg.path
             [ d
                 "M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zm1.41-1.41A8 8 0 1 0 15.66 4.34 8 8 0 0 0 4.34 15.66zm9.9-8.49L11.41 10l2.83 2.83-1.41 1.41L10 11.41l-2.83 2.83-1.41-1.41L8.59 10 5.76 7.17l1.41-1.41L10 8.59l2.83-2.83 1.41 1.41z"
+            ]
+            []
+        ]
+
+
+arrowDown : Svg msg
+arrowDown =
+    svg
+        [ class "w-2 h-2 fill-gray-700 md:ml-2"
+        , xmlSpace "http://www.w3.org/2000/svg"
+        , viewBox "0 0 961.243 599.998"
+        ]
+        [ Svg.path [ d "M239.998 239.999L0 0h961.243L721.246 240c-131.999 132-240.28 240-240.624 239.999-.345-.001-108.625-108.001-240.624-240z" ] []
+        ]
+
+
+chevronRight : Svg msg
+chevronRight =
+    svg
+        [ xmlSpace "http://www.w3.org/2000/svg"
+        , viewBox "0 0 20 20"
+        , class "block w-6 h-6 fill-gray-400"
+        ]
+        [ polygon
+            [ points
+                "12.95 10.707 13.657 10 8 4.343 6.586 5.757 10.828 10 6.586 14.243 8 15.657 12.95 10.707"
             ]
             []
         ]

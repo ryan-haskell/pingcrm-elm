@@ -122,7 +122,13 @@ update msg model =
                     }
 
                 ( page, pageCmd ) =
-                    Pages.init context pageData
+                    if model.pageData.component == pageData.component then
+                        -- TODO: Should this emit a PageDataChanged Msg?
+                        -- ( model.page, Effect.none )
+                        Pages.init context pageData
+
+                    else
+                        Pages.init context pageData
             in
             ( { model | pageData = pageData, page = page }
             , Cmd.batch
@@ -319,7 +325,7 @@ toInertiaNavigateCmd model url =
     else
         Http.request
             { method = "GET"
-            , url = url.path
+            , url = Url.toString url
             , headers =
                 [ Http.header "Accept" "text/html, application/xhtml+xml"
                 , Http.header "X-Requested-With" "XMLHttpRequest"
