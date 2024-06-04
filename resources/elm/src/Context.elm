@@ -7,4 +7,5 @@ import Url exposing (Url)
 type alias Context =
     { url : Url
     , sidebar : Layouts.Sidebar.Model
+    , isMobile : Bool
     }

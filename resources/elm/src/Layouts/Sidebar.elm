@@ -169,8 +169,8 @@ view :
     { model : Model
     , flash : Flash
     , toMsg : Msg -> msg
+    , context : { context | url : Url, isMobile : Bool }
     , title : String
-    , url : Url
     , user : User user account
     , content : List (Html msg)
     }
@@ -195,7 +195,12 @@ view props =
             ShowingUserDropdown ->
                 Components.Dropdown.view
                     { anchor = Components.Dropdown.TopRight
-                    , offset = ( -48, 44 )
+                    , offset =
+                        if props.context.isMobile then
+                            ( -16, 104 )
+
+                        else
+                            ( -48, 44 )
                     , content = viewUserDropdownMenu props
                     , onDismiss = props.toMsg ClickedDismissDropdown
                     }
@@ -211,9 +216,9 @@ view props =
     }
 
 
-viewMobileNavMenu : { props | url : Url } -> Html msg
-viewMobileNavMenu { url } =
-    div [ class "mt-2 px-8 py-4 bg-indigo-800 rounded shadow-lg" ] (viewSidebarLinks url)
+viewMobileNavMenu : { props | context : { context | url : Url } } -> Html msg
+viewMobileNavMenu { context } =
+    div [ class "mt-2 px-8 py-4 bg-indigo-800 rounded shadow-lg" ] (viewSidebarLinks context.url)
 
 
 viewSidebarLinks : Url -> List (Html msg)
@@ -318,15 +323,15 @@ viewNavbar { user, toMsg } =
 viewSidebarAndMainContent :
     { props
         | content : List (Html msg)
-        , url : Url
+        , context : { context | url : Url }
         , toMsg : Msg -> msg
     }
     -> Model
     -> Html msg
-viewSidebarAndMainContent { content, url, toMsg } (Model model) =
+viewSidebarAndMainContent { content, context, toMsg } (Model model) =
     div [ class "md:flex md:grow md:overflow-hidden" ]
         [ div [ class "hidden shrink-0 p-12 w-56 bg-indigo-800 overflow-y-auto md:block" ]
-            (viewSidebarLinks url)
+            (viewSidebarLinks context.url)
         , div
             [ class "px-4 py-8 md:flex-1 md:p-12 md:overflow-y-auto"
             , attribute "scroll-region" ""

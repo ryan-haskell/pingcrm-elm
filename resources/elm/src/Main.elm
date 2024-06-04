@@ -43,6 +43,7 @@ type alias Model =
     , xsrfToken : String
     , page : Pages.Model
     , sidebar : Layouts.Sidebar.Model
+    , isMobile : Bool
     }
 
 
@@ -53,10 +54,15 @@ init flags url key =
         sidebar =
             Layouts.Sidebar.init
 
+        isMobile : Bool
+        isMobile =
+            flags.window.width <= 740
+
         context : Context
         context =
             { url = url
             , sidebar = sidebar
+            , isMobile = isMobile
             }
 
         ( page, pageCmd ) =
@@ -70,6 +76,7 @@ init flags url key =
             , xsrfToken = flags.xsrfToken
             , page = page
             , sidebar = sidebar
+            , isMobile = isMobile
             }
     in
     ( model
@@ -89,6 +96,7 @@ type Msg
     | Sidebar Layouts.Sidebar.Msg
     | ShowProblem { message : String, details : Maybe String }
     | PressedEsc
+    | Resize Int Int
     | XsrfTokenRefreshed String
 
 
@@ -119,6 +127,7 @@ update msg model =
                 context =
                     { url = url
                     , sidebar = model.sidebar
+                    , isMobile = model.isMobile
                     }
 
                 ( page, pageCmd ) =
@@ -151,6 +160,7 @@ update msg model =
                 context =
                     { url = model.url
                     , sidebar = model.sidebar
+                    , isMobile = model.isMobile
                     }
             in
             Pages.update context pageMsg model.page
@@ -182,6 +192,11 @@ update msg model =
             , Cmd.none
             )
 
+        Resize width height ->
+            ( { model | isMobile = width <= 740 }
+            , Cmd.none
+            )
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -190,12 +205,14 @@ subscriptions model =
         context =
             { url = model.url
             , sidebar = model.sidebar
+            , isMobile = model.isMobile
             }
     in
     Sub.batch
         [ Pages.subscriptions context model.page
             |> Sub.map Page
         , Browser.Events.onKeyDown onEscDecoder
+        , Browser.Events.onResize Resize
         , onXsrfTokenRefreshed XsrfTokenRefreshed
         ]
 
@@ -224,6 +241,7 @@ view model =
         context =
             { url = model.url
             , sidebar = model.sidebar
+            , isMobile = model.isMobile
             }
     in
     Pages.view context model.page
