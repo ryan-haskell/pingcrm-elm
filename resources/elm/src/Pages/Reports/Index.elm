@@ -83,6 +83,7 @@ view ctx model =
     Layouts.Sidebar.view
         { model = ctx.sidebar
         , toMsg = Sidebar
+        , url = ctx.url
         , title = "Reports"
         , user = model.props.auth.user
         , content =

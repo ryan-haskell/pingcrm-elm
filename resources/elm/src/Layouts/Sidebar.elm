@@ -1,10 +1,24 @@
-module Layouts.Sidebar exposing (Model, Msg, init, update, view)
+module Layouts.Sidebar exposing
+    ( Model, Msg
+    , init, update, view
+    , dismissDropdown
+    )
+
+{-|
+
+@docs Model, Msg
+@docs init, update, view
+
+@docs dismissDropdown
+
+-}
 
 import Browser exposing (Document)
 import Components.Dropdown
 import Components.Icon
 import Components.Logo
 import Effect exposing (Effect)
+import Extra.Http
 import Html exposing (..)
 import Html.Attributes as Attr exposing (attribute, class, href, type_)
 import Html.Events
@@ -12,6 +26,7 @@ import Http
 import Json.Decode
 import Json.Encode
 import Layouts.Sidebar.Msg exposing (..)
+import Url exposing (Url)
 
 
 
@@ -107,10 +122,12 @@ update ({ msg, toModel, toMsg } as args) =
                 )
 
         LogoutResponded (Err httpError) ->
-            -- TODO: Handle logout errors
             return
                 ( Model model
-                , Effect.none
+                , Effect.showProblem
+                    { message = "Unable to log out the current user."
+                    , details = Just (Extra.Http.toUserFriendlyMessage httpError)
+                    }
                 )
 
         ShowProblem { durationInMs, problem } ->
@@ -147,6 +164,7 @@ view :
     { model : Model
     , toMsg : Msg -> msg
     , title : String
+    , url : Url
     , user : User user account
     , content : List (Html msg)
     }
@@ -180,44 +198,45 @@ view props =
                 Components.Dropdown.view
                     { anchor = Components.Dropdown.TopRight
                     , offset = ( -24, 44 )
-                    , content = viewMobileNavMenu
+                    , content = viewMobileNavMenu props
                     , onDismiss = props.toMsg ClickedDismissDropdown
                     }
         ]
     }
 
 
-viewMobileNavMenu : Html msg
-viewMobileNavMenu =
-    div [ class "mt-2 px-8 py-4 bg-indigo-800 rounded shadow-lg" ]
-        [ div [ class "mb-4" ]
-            [ a [ class "group flex items-center py-3", href "/" ]
-                [ Components.Icon.dashboard
-                , div [ class "text-white" ] [ text "Dashboard" ]
-                ]
-            ]
-        , div [ class "mb-4" ]
-            [ a [ class "group flex items-center py-3", href "/organizations" ]
-                [ Components.Icon.organizations
-                , div [ class "text-indigo-300 group-hover:text-white" ]
-                    [ text "Organizations" ]
-                ]
-            ]
-        , div [ class "mb-4" ]
-            [ a [ class "group flex items-center py-3", href "/contacts" ]
-                [ Components.Icon.contacts
-                , div [ class "text-indigo-300 group-hover:text-white" ]
-                    [ text "Contacts" ]
-                ]
-            ]
-        , div [ class "mb-4" ]
-            [ a [ class "group flex items-center py-3", href "/reports" ]
-                [ Components.Icon.reports
-                , div [ class "text-indigo-300 group-hover:text-white" ]
-                    [ text "Reports" ]
-                ]
-            ]
-        ]
+viewMobileNavMenu : { props | url : Url } -> Html msg
+viewMobileNavMenu { url } =
+    div [ class "mt-2 px-8 py-4 bg-indigo-800 rounded shadow-lg" ] (viewSidebarLinks url)
+
+
+viewSidebarLinks : Url -> List (Html msg)
+viewSidebarLinks url =
+    [ viewLink
+        { label = "Dashboard"
+        , url = "/"
+        , icon = Components.Icon.dashboard
+        , isActive = "/" == url.path
+        }
+    , viewLink
+        { label = "Organizations"
+        , url = "/organizations"
+        , icon = Components.Icon.organizations
+        , isActive = String.startsWith "/organizations" url.path
+        }
+    , viewLink
+        { label = "Contacts"
+        , url = "/contacts"
+        , icon = Components.Icon.contacts
+        , isActive = String.startsWith "/contacts" url.path
+        }
+    , viewLink
+        { label = "Reports"
+        , url = "/reports"
+        , icon = Components.Icon.reports
+        , isActive = String.startsWith "/reports" url.path
+        }
+    ]
 
 
 viewUserDropdownMenu : { props | toMsg : Msg -> msg } -> Html msg
@@ -293,46 +312,52 @@ viewNavbar { user, toMsg } =
 viewSidebarAndMainContent :
     { props
         | content : List (Html msg)
+        , url : Url
     }
     -> Html msg
-viewSidebarAndMainContent { content } =
+viewSidebarAndMainContent { content, url } =
     div
         [ class "md:flex md:grow md:overflow-hidden" ]
         [ div [ class "hidden shrink-0 p-12 w-56 bg-indigo-800 overflow-y-auto md:block" ]
-            [ div [ class "mb-4" ]
-                [ a [ class "group flex items-center py-3", href "/" ]
-                    [ Components.Icon.dashboard
-                    , div [ class "text-white" ] [ text "Dashboard" ]
-                    ]
-                ]
-            , div [ class "mb-4" ]
-                [ a [ class "group flex items-center py-3", href "/organizations" ]
-                    [ Components.Icon.organizations
-                    , div
-                        [ class "text-indigo-300 group-hover:text-white" ]
-                        [ text "Organizations" ]
-                    ]
-                ]
-            , div [ class "mb-4" ]
-                [ a [ class "group flex items-center py-3", href "/contacts" ]
-                    [ Components.Icon.contacts
-                    , div
-                        [ class "text-indigo-300 group-hover:text-white" ]
-                        [ text "Contacts" ]
-                    ]
-                ]
-            , div [ class "mb-4" ]
-                [ a [ class "group flex items-center py-3", href "/reports" ]
-                    [ Components.Icon.reports
-                    , div
-                        [ class "text-indigo-300 group-hover:text-white" ]
-                        [ text "Reports" ]
-                    ]
-                ]
-            ]
+            (viewSidebarLinks url)
         , div
             [ class "px-4 py-8 md:flex-1 md:p-12 md:overflow-y-auto"
             , attribute "scroll-region" ""
             ]
             content
+        ]
+
+
+dismissDropdown : Model -> Model
+dismissDropdown (Model model) =
+    Model { model | dropdown = Closed }
+
+
+viewLink :
+    { label : String
+    , url : String
+    , icon : Html msg
+    , isActive : Bool
+    }
+    -> Html msg
+viewLink props =
+    div [ class "mb-4" ]
+        [ a [ class "group flex items-center py-3", href props.url ]
+            [ span
+                [ Attr.classList
+                    [ ( "text-white", props.isActive )
+                    , ( "text-indigo-400", not props.isActive )
+                    , ( "group-hover:text-white", not props.isActive )
+                    ]
+                ]
+                [ props.icon ]
+            , div
+                [ Attr.classList
+                    [ ( "text-white", props.isActive )
+                    , ( "text-indigo-300", not props.isActive )
+                    , ( "group-hover:text-white", not props.isActive )
+                    ]
+                ]
+                [ text props.label ]
+            ]
         ]

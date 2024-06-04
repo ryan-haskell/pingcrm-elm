@@ -1,6 +1,7 @@
 module Main exposing (main)
 
 import Browser exposing (UrlRequest)
+import Browser.Events
 import Browser.Navigation as Nav exposing (Key)
 import Context exposing (Context)
 import Effect exposing (Effect)
@@ -85,6 +86,7 @@ type Msg
     | UrlRequested UrlRequest
     | InertiaPageDataResponded Url (Result Http.Error (PageData Json.Decode.Value))
     | Sidebar Layouts.Sidebar.Msg
+    | PressedEsc
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -148,6 +150,11 @@ update msg model =
                 }
                 |> Tuple.mapSecond (toCmd model)
 
+        PressedEsc ->
+            ( { model | sidebar = Layouts.Sidebar.dismissDropdown model.sidebar }
+            , Cmd.none
+            )
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -158,8 +165,24 @@ subscriptions model =
             , sidebar = model.sidebar
             }
     in
-    Pages.subscriptions context model.page
-        |> Sub.map Page
+    Sub.batch
+        [ Pages.subscriptions context model.page
+            |> Sub.map Page
+        , Browser.Events.onKeyDown onEscDecoder
+        ]
+
+
+onEscDecoder : Json.Decode.Decoder Msg
+onEscDecoder =
+    Json.Decode.field "key" Json.Decode.string
+        |> Json.Decode.andThen
+            (\key ->
+                if key == "Escape" then
+                    Json.Decode.succeed PressedEsc
+
+                else
+                    Json.Decode.fail "Other key pressed"
+            )
 
 
 
