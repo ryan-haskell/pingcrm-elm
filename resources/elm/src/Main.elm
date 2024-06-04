@@ -274,6 +274,12 @@ toCmd model effect =
                         (Inertia.PageData.decoder req.decoder)
                 }
 
+        Effect.ReportJsonDecodeError { page, error } ->
+            reportJsonDecodeError
+                { page = page
+                , error = Json.Decode.errorToString error
+                }
+
 
 toHttpMsg :
     Model
@@ -345,6 +351,9 @@ showProblem problem =
 
 
 port refreshXsrfToken : () -> Cmd msg
+
+
+port reportJsonDecodeError : { page : String, error : String } -> Cmd msg
 
 
 port onXsrfTokenRefreshed : (String -> msg) -> Sub msg

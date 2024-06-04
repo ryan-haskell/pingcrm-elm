@@ -13,6 +13,7 @@ module Pages.Error500 exposing
 -}
 
 import Browser exposing (Document)
+import Components.ErrorPage
 import Context exposing (Context)
 import Effect exposing (Effect)
 import Html exposing (Html)
@@ -42,7 +43,7 @@ init : Context -> Props -> ( Model, Effect Msg )
 init ctx props =
     ( { props = props
       }
-    , Effect.none
+    , Effect.reportJsonDecodeError props
     )
 
 
@@ -74,13 +75,8 @@ view : Context -> Model -> Document Msg
 view ctx { props } =
     { title = "500"
     , body =
-        [ Html.div []
-            [ Html.h1 []
-                [ Html.text ("500: Unexpected props for '" ++ props.page ++ "'.")
-                ]
-            , Html.pre []
-                [ Html.text (Json.Decode.errorToString props.error)
-                ]
-            ]
-        ]
+        Components.ErrorPage.view
+            { title = "500"
+            , message = "Unexpected data for '" ++ props.page ++ "'"
+            }
     }

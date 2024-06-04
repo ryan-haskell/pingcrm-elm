@@ -28,9 +28,22 @@ if (app?.ports?.refreshXsrfToken?.subscribe) {
   })
 }
 
+if (app?.ports?.reportJsonDecodeError?.subscribe) {
+  app.ports.reportJsonDecodeError.subscribe(reportJsonDecodeError)
+}
+
+
 function refreshXsrfToken () {
   return decodeURIComponent(document.cookie.split(';')
     .map(x => x.split('='))
     .map(([key,value]) => key.trim() === 'XSRF-TOKEN' ? value.trim() : undefined)
     .find(x => x !== ''))
+}
+
+function reportJsonDecodeError ({ page, error }) {
+  if (import.meta.env.DEV) {
+    console.warn(page.toUpperCase() + '\n\n' + error)
+  } else {
+    // Report this to Sentry, etc
+  }
 }

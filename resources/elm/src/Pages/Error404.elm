@@ -13,9 +13,11 @@ module Pages.Error404 exposing
 -}
 
 import Browser exposing (Document)
+import Components.ErrorPage
 import Context exposing (Context)
 import Effect exposing (Effect)
-import Html exposing (Html)
+import Html exposing (..)
+import Html.Attributes exposing (..)
 import Json.Decode
 
 
@@ -71,10 +73,10 @@ subscriptions ctx model =
 
 view : Context -> Model -> Document Msg
 view ctx { props } =
-    { title = "404"
+    { title = "404 | PingCRM"
     , body =
-        [ Html.h1 []
-            [ Html.text ("404: No handler for '" ++ props.page ++ "'.")
-            ]
-        ]
+        Components.ErrorPage.view
+            { title = "404"
+            , message = props.page
+            }
     }

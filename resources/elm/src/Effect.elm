@@ -5,6 +5,7 @@ module Effect exposing
     , sendSidebarMsg
     , showProblem
     , post, delete
+    , reportJsonDecodeError
     , map
     )
 
@@ -19,6 +20,8 @@ module Effect exposing
 @docs showProblem
 
 @docs post, delete
+
+@docs reportJsonDecodeError
 
 @docs map
 
@@ -38,6 +41,7 @@ type Effect msg
     | SendDelayedMsg Float msg
     | SendSidebarMsg Layouts.Sidebar.Msg.Msg
     | ShowProblem { message : String, details : Maybe String }
+    | ReportJsonDecodeError { page : String, error : Json.Decode.Error }
 
 
 
@@ -66,6 +70,19 @@ sendMsg msg =
 sendDelayedMsg : { delay : Float, msg : msg } -> Effect msg
 sendDelayedMsg { delay, msg } =
     SendDelayedMsg delay msg
+
+
+
+-- CONSOLE
+
+
+reportJsonDecodeError :
+    { page : String
+    , error : Json.Decode.Error
+    }
+    -> Effect msg
+reportJsonDecodeError props =
+    ReportJsonDecodeError props
 
 
 
@@ -179,6 +196,9 @@ map fn effect =
 
         InertiaHttp req ->
             InertiaHttp (mapHttpRequest fn req)
+
+        ReportJsonDecodeError msg ->
+            ReportJsonDecodeError msg
 
 
 mapHttpRequest : (a -> b) -> HttpRequest a -> HttpRequest b
