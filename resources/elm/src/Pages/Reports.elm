@@ -1,14 +1,16 @@
 module Pages.Reports exposing
     ( Props, decoder
-    , Model, Msg
-    , init, subscriptions, update, view
+    , Model, init, onPropsChanged
+    , Msg, update, subscriptions
+    , view
     )
 
 {-|
 
 @docs Props, decoder
-@docs Model, Msg
-@docs init, subscriptions, update, view
+@docs Model, init, onPropsChanged
+@docs Msg, update, subscriptions
+@docs view
 
 -}
 
@@ -53,6 +55,13 @@ init : Context -> Props -> ( Model, Effect Msg )
 init ctx props =
     ( { props = props
       }
+    , Effect.none
+    )
+
+
+onPropsChanged : Context -> Props -> Model -> ( Model, Effect Msg )
+onPropsChanged ctx props model =
+    ( { model | props = props }
     , Effect.none
     )
 

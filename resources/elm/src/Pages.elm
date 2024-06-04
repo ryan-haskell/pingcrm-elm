@@ -2,6 +2,7 @@ module Pages exposing
     ( Model
     , Msg
     , init
+    , onPropsChanged
     , subscriptions
     , update
     , view
@@ -99,6 +100,105 @@ init context pageData =
                 |> Tuple.mapBoth
                     Model_Error404
                     (Effect.map Msg_Error404)
+
+
+onPropsChanged :
+    Context
+    -> PageData Json.Decode.Value
+    -> Model
+    -> ( Model, Effect Msg )
+onPropsChanged ctx pageData model =
+    case model of
+        Model_Login pageModel ->
+            case Json.Decode.decodeValue Pages.Login.decoder pageData.props of
+                Ok props ->
+                    Pages.Login.onPropsChanged ctx props pageModel
+                        |> Tuple.mapBoth
+                            Model_Login
+                            (Effect.map Msg_Login)
+
+                Err jsonDecodeError ->
+                    Pages.Error500.init ctx
+                        { error = jsonDecodeError
+                        , page = pageData.component
+                        }
+                        |> Tuple.mapBoth
+                            Model_Error500
+                            (Effect.map Msg_Error500)
+
+        Model_Dashboard pageModel ->
+            case Json.Decode.decodeValue Pages.Dashboard.decoder pageData.props of
+                Ok props ->
+                    Pages.Dashboard.onPropsChanged ctx props pageModel
+                        |> Tuple.mapBoth
+                            Model_Dashboard
+                            (Effect.map Msg_Dashboard)
+
+                Err jsonDecodeError ->
+                    Pages.Error500.init ctx
+                        { error = jsonDecodeError
+                        , page = pageData.component
+                        }
+                        |> Tuple.mapBoth
+                            Model_Error500
+                            (Effect.map Msg_Error500)
+
+        Model_Organizations pageModel ->
+            case Json.Decode.decodeValue Pages.Organizations.decoder pageData.props of
+                Ok props ->
+                    Pages.Organizations.onPropsChanged ctx props pageModel
+                        |> Tuple.mapBoth
+                            Model_Organizations
+                            (Effect.map Msg_Organizations)
+
+                Err jsonDecodeError ->
+                    Pages.Error500.init ctx
+                        { error = jsonDecodeError
+                        , page = pageData.component
+                        }
+                        |> Tuple.mapBoth
+                            Model_Error500
+                            (Effect.map Msg_Error500)
+
+        Model_Contacts pageModel ->
+            case Json.Decode.decodeValue Pages.Contacts.decoder pageData.props of
+                Ok props ->
+                    Pages.Contacts.onPropsChanged ctx props pageModel
+                        |> Tuple.mapBoth
+                            Model_Contacts
+                            (Effect.map Msg_Contacts)
+
+                Err jsonDecodeError ->
+                    Pages.Error500.init ctx
+                        { error = jsonDecodeError
+                        , page = pageData.component
+                        }
+                        |> Tuple.mapBoth
+                            Model_Error500
+                            (Effect.map Msg_Error500)
+
+        Model_Reports pageModel ->
+            case Json.Decode.decodeValue Pages.Reports.decoder pageData.props of
+                Ok props ->
+                    Pages.Reports.onPropsChanged ctx props pageModel
+                        |> Tuple.mapBoth
+                            Model_Reports
+                            (Effect.map Msg_Reports)
+
+                Err jsonDecodeError ->
+                    Pages.Error500.init ctx
+                        { error = jsonDecodeError
+                        , page = pageData.component
+                        }
+                        |> Tuple.mapBoth
+                            Model_Error500
+                            (Effect.map Msg_Error500)
+
+        Model_Error404 pageModel ->
+            ( model, Effect.none )
+
+        Model_Error500 pageModel ->
+            ( model, Effect.none )
 
 
 

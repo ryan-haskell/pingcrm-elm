@@ -182,6 +182,11 @@ delete options =
         }
 
 
+{-| Feels like this is only useful if you want to get data without changing the URL.
+
+Prefer `Effect.pushUrl` instead, which does normal inertia things!
+
+-}
 get :
     { url : String
     , decoder : Json.Decode.Decoder props

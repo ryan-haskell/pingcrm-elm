@@ -1,14 +1,16 @@
 module Pages.Organizations exposing
     ( Props, decoder
-    , Model, Msg
-    , init, subscriptions, update, view
+    , Model, init, onPropsChanged
+    , Msg, update, subscriptions
+    , view
     )
 
 {-|
 
 @docs Props, decoder
-@docs Model, Msg
-@docs init, subscriptions, update, view
+@docs Model, init, onPropsChanged
+@docs Msg, update, subscriptions
+@docs view
 
 -}
 
@@ -20,12 +22,10 @@ import Domain.Auth exposing (Auth)
 import Domain.Flash exposing (Flash)
 import Domain.Organization exposing (Organization)
 import Effect exposing (Effect)
-import Extra.Http
 import Extra.Url
 import Html exposing (..)
 import Html.Attributes as Attr exposing (attribute, class, href)
 import Html.Events
-import Http
 import Json.Decode
 import Layouts.Sidebar
 import Url exposing (Url)
@@ -74,6 +74,13 @@ init ctx props =
     )
 
 
+onPropsChanged : Context -> Props -> Model -> ( Model, Effect Msg )
+onPropsChanged ctx props model =
+    ( { model | props = props }
+    , Effect.none
+    )
+
+
 
 -- UPDATE
 
@@ -82,14 +89,15 @@ type Msg
     = Sidebar Layouts.Sidebar.Msg
     | Table Components.Table.Msg
     | Search String
-    | SearchApiResponded String (Result Http.Error Props)
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
 update ctx msg model =
     case msg of
         Sidebar sidebarMsg ->
-            ( model, Effect.sendSidebarMsg sidebarMsg )
+            ( model
+            , Effect.sendSidebarMsg sidebarMsg
+            )
 
         Table tableMsg ->
             Components.Table.update
@@ -102,40 +110,19 @@ update ctx msg model =
 
         Search value ->
             ( { model | mostRecentSearch = Just value }
-            , Effect.get
-                { url = toSearchUrl value model
-                , decoder = decoder
-                , onResponse = SearchApiResponded value
-                }
+            , Effect.pushUrl (toSearchUrl value model)
             )
-
-        SearchApiResponded value result ->
-            -- This if prevents a slow earlier request from overwriting a more recent one
-            if Just value == model.mostRecentSearch then
-                case result of
-                    Ok props ->
-                        ( { model | props = props }
-                        , Effect.none
-                          -- THIS BREAKS USER INPUT: , Effect.pushUrl (toSearchUrl value model)
-                        )
-
-                    Err httpError ->
-                        ( model
-                        , Effect.showProblem
-                            { message = Extra.Http.toUserFriendlyMessage httpError
-                            , details = Just "Unable to search for organizations by name."
-                            }
-                        )
-
-            else
-                ( model, Effect.none )
 
 
 toSearchUrl : String -> Model -> String
 toSearchUrl value model =
-    Url.Builder.absolute
-        [ "organizations" ]
-        [ Url.Builder.string "search" value ]
+    if String.isEmpty (String.trim value) then
+        "/organizations"
+
+    else
+        Url.Builder.absolute
+            [ "organizations" ]
+            [ Url.Builder.string "search" value ]
 
 
 subscriptions : Context -> Model -> Sub Msg
