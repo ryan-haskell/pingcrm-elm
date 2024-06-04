@@ -1,4 +1,4 @@
-module Extra.Document exposing (Document, map)
+module Extra.Document exposing (Document, map, none)
 
 import Browser
 import Html
@@ -6,6 +6,13 @@ import Html
 
 type alias Document msg =
     Browser.Document msg
+
+
+none : Document msg
+none =
+    { title = ""
+    , body = []
+    }
 
 
 map : (a -> b) -> Document a -> Document b

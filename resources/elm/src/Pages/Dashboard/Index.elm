@@ -59,14 +59,14 @@ init ctx props =
 
 
 type Msg
-    = DoNothing
+    = Sidebar Layouts.Sidebar.Msg
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
 update ctx msg model =
     case msg of
-        DoNothing ->
-            ( model, Effect.none )
+        Sidebar sidebarMsg ->
+            ( model, Effect.sendSidebarMsg sidebarMsg )
 
 
 subscriptions : Context -> Model -> Sub Msg
@@ -81,7 +81,9 @@ subscriptions ctx model =
 view : Context -> Model -> Document Msg
 view ctx model =
     Layouts.Sidebar.view
-        { title = "Dashboard"
+        { model = ctx.sidebar
+        , toMsg = Sidebar
+        , title = "Dashboard"
         , user = model.props.auth.user
         , content =
             [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Dashboard" ]

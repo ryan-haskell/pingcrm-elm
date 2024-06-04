@@ -10,8 +10,11 @@ import Html exposing (Html)
 import Http
 import Inertia.PageData exposing (PageData)
 import Json.Decode
+import Layouts.Sidebar
 import Pages
 import Pages.Dashboard.Index
+import Process
+import Task
 import Url exposing (Url)
 
 
@@ -37,15 +40,21 @@ type alias Model =
     , pageData : PageData
     , xsrfToken : String
     , page : Pages.Model
+    , sidebar : Layouts.Sidebar.Model
     }
 
 
 init : Flags -> Url -> Key -> ( Model, Cmd Msg )
 init flags url key =
     let
+        sidebar : Layouts.Sidebar.Model
+        sidebar =
+            Layouts.Sidebar.init
+
         context : Context
         context =
             { url = url
+            , sidebar = sidebar
             }
 
         ( page, pageCmd ) =
@@ -58,6 +67,7 @@ init flags url key =
             , pageData = flags.pageData
             , xsrfToken = flags.xsrfToken
             , page = page
+            , sidebar = sidebar
             }
     in
     ( model
@@ -74,6 +84,7 @@ type Msg
     | UrlChanged Url
     | UrlRequested UrlRequest
     | InertiaPageDataResponded Url (Result Http.Error PageData)
+    | Sidebar Layouts.Sidebar.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -81,7 +92,7 @@ update msg model =
     case msg of
         UrlRequested (Browser.Internal url) ->
             ( model
-            , toInertiaNavigateCmd model url
+            , Nav.pushUrl model.key (Url.toString url)
             )
 
         UrlRequested (Browser.External href) ->
@@ -89,21 +100,24 @@ update msg model =
             , Nav.load href
             )
 
+        UrlChanged url ->
+            ( { model | url = url }
+            , toInertiaNavigateCmd model url
+            )
+
         InertiaPageDataResponded url (Ok pageData) ->
             let
                 context : Context
                 context =
                     { url = url
+                    , sidebar = model.sidebar
                     }
 
                 ( page, pageCmd ) =
                     Pages.init context pageData
             in
             ( { model | pageData = pageData, page = page }
-            , Cmd.batch
-                [ Nav.pushUrl model.key (Url.toString url)
-                , toCmd model (Effect.map Page pageCmd)
-                ]
+            , toCmd model (Effect.map Page pageCmd)
             )
 
         InertiaPageDataResponded url (Err httpError) ->
@@ -112,22 +126,27 @@ update msg model =
             , Nav.load (Url.toString url)
             )
 
-        UrlChanged url ->
-            ( { model | url = url }
-            , Cmd.none
-            )
-
         Page pageMsg ->
             let
                 context : Context
                 context =
                     { url = model.url
+                    , sidebar = model.sidebar
                     }
             in
             Pages.update context pageMsg model.page
                 |> Tuple.mapBoth
                     (\page -> { model | page = page })
                     (Effect.map Page >> toCmd model)
+
+        Sidebar sidebarMsg ->
+            Layouts.Sidebar.update
+                { msg = sidebarMsg
+                , model = model.sidebar
+                , toModel = \sidebar -> { model | sidebar = sidebar }
+                , toMsg = Sidebar
+                }
+                |> Tuple.mapSecond (toCmd model)
 
 
 subscriptions : Model -> Sub Msg
@@ -136,6 +155,7 @@ subscriptions model =
         context : Context
         context =
             { url = model.url
+            , sidebar = model.sidebar
             }
     in
     Pages.subscriptions context model.page
@@ -152,6 +172,7 @@ view model =
         context : Context
         context =
             { url = model.url
+            , sidebar = model.sidebar
             }
     in
     Pages.view context model.page
@@ -173,6 +194,22 @@ toCmd model effect =
 
         Effect.Batch effects ->
             Cmd.batch (List.map (toCmd model) effects)
+
+        Effect.SendMsg msg ->
+            Task.succeed msg
+                |> Task.perform identity
+
+        Effect.SendDelayedMsg delay msg ->
+            Process.sleep delay
+                |> Task.map (\_ -> msg)
+                |> Task.perform identity
+
+        Effect.SendSidebarMsg sidebarMsg ->
+            Task.succeed sidebarMsg
+                |> Task.perform Sidebar
+
+        Effect.ShowProblem problem ->
+            Debug.todo "SHOW PROBLEM"
 
         Effect.InertiaHttp req ->
             Http.request

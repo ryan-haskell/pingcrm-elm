@@ -1,7 +1,10 @@
 module Effect exposing
     ( Effect(..)
     , none, batch
-    , post
+    , sendMsg, sendDelayedMsg
+    , sendSidebarMsg
+    , showProblem
+    , post, delete
     , map
     )
 
@@ -10,7 +13,12 @@ module Effect exposing
 @docs Effect
 @docs none, batch
 
-@docs post
+@docs sendMsg, sendDelayedMsg
+
+@docs sendSidebarMsg
+@docs showProblem
+
+@docs post, delete
 
 @docs map
 
@@ -19,12 +27,17 @@ module Effect exposing
 import Http
 import Json.Decode
 import Json.Encode
+import Layouts.Sidebar.Msg
 
 
 type Effect msg
     = None
-    | InertiaHttp (HttpRequest msg)
     | Batch (List (Effect msg))
+    | InertiaHttp (HttpRequest msg)
+    | SendMsg msg
+    | SendDelayedMsg Float msg
+    | SendSidebarMsg Layouts.Sidebar.Msg.Msg
+    | ShowProblem { message : String, details : Maybe String }
 
 
 
@@ -39,6 +52,38 @@ none =
 batch : List (Effect msg) -> Effect msg
 batch effects =
     Batch effects
+
+
+
+-- MESSAGES
+
+
+sendMsg : msg -> Effect msg
+sendMsg msg =
+    SendMsg msg
+
+
+sendDelayedMsg : { delay : Float, msg : msg } -> Effect msg
+sendDelayedMsg { delay, msg } =
+    SendDelayedMsg delay msg
+
+
+
+-- SIDEBAR
+
+
+sendSidebarMsg : Layouts.Sidebar.Msg.Msg -> Effect msg
+sendSidebarMsg sidebarMsg =
+    SendSidebarMsg sidebarMsg
+
+
+
+-- COMMUNICATING ERRORS
+
+
+showProblem : { message : String, details : Maybe String } -> Effect msg
+showProblem problem =
+    ShowProblem problem
 
 
 
@@ -81,6 +126,32 @@ post options =
         }
 
 
+delete :
+    { url : String
+    , decoder : Json.Decode.Decoder props
+    , onResponse : Result Http.Error props -> msg
+    }
+    -> Effect msg
+delete options =
+    let
+        decoder : Json.Decode.Decoder msg
+        decoder =
+            options.decoder
+                |> Json.Decode.map (\props -> options.onResponse (Ok props))
+
+        onFailure : Http.Error -> msg
+        onFailure httpError =
+            options.onResponse (Err httpError)
+    in
+    InertiaHttp
+        { method = "DELETE"
+        , url = options.url
+        , body = Http.emptyBody
+        , decoder = decoder
+        , onFailure = onFailure
+        }
+
+
 
 -- MAP
 
@@ -91,11 +162,23 @@ map fn effect =
         None ->
             None
 
-        InertiaHttp req ->
-            InertiaHttp (mapHttpRequest fn req)
-
         Batch effects ->
             Batch (List.map (map fn) effects)
+
+        SendMsg msg ->
+            SendMsg (fn msg)
+
+        SendDelayedMsg delay msg ->
+            SendDelayedMsg delay (fn msg)
+
+        ShowProblem problem ->
+            ShowProblem problem
+
+        SendSidebarMsg msg ->
+            SendSidebarMsg msg
+
+        InertiaHttp req ->
+            InertiaHttp (mapHttpRequest fn req)
 
 
 mapHttpRequest : (a -> b) -> HttpRequest a -> HttpRequest b
