@@ -2,9 +2,11 @@ module Main exposing (main)
 
 import Browser exposing (UrlRequest)
 import Browser.Navigation as Nav exposing (Key)
+import Context exposing (Context)
 import Extra.Document exposing (Document)
 import Flags exposing (Flags)
 import Html exposing (Html)
+import Inertia.PageData exposing (PageData)
 import Json.Decode
 import Pages
 import Pages.Dashboard.Index
@@ -30,6 +32,8 @@ main =
 type alias Model =
     { url : Url
     , key : Key
+    , pageData : PageData
+    , xsrfToken : String
     , page : Pages.Model
     }
 
@@ -37,11 +41,19 @@ type alias Model =
 init : Flags -> Url -> Key -> ( Model, Cmd Msg )
 init flags url key =
     let
+        context : Context
+        context =
+            { url = url
+            , xsrfToken = flags.xsrfToken
+            }
+
         ( page, pageCmd ) =
-            Pages.init flags.pageData
+            Pages.init context flags.pageData
     in
     ( { url = url
       , key = key
+      , pageData = flags.pageData
+      , xsrfToken = flags.xsrfToken
       , page = page
       }
     , Cmd.map Page pageCmd
@@ -77,7 +89,14 @@ update msg model =
             )
 
         Page pageMsg ->
-            Pages.update pageMsg model.page
+            let
+                context : Context
+                context =
+                    { url = model.url
+                    , xsrfToken = model.xsrfToken
+                    }
+            in
+            Pages.update context pageMsg model.page
                 |> Tuple.mapBoth
                     (\page -> { model | page = page })
                     (Cmd.map Page)
@@ -85,7 +104,14 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Pages.subscriptions model.page
+    let
+        context : Context
+        context =
+            { url = model.url
+            , xsrfToken = model.xsrfToken
+            }
+    in
+    Pages.subscriptions context model.page
         |> Sub.map Page
 
 
@@ -95,5 +121,12 @@ subscriptions model =
 
 view : Model -> Document Msg
 view model =
-    Pages.view model.page
+    let
+        context : Context
+        context =
+            { url = model.url
+            , xsrfToken = model.xsrfToken
+            }
+    in
+    Pages.view context model.page
         |> Extra.Document.map Page

@@ -1,4 +1,4 @@
-module InertiaJs.PageData exposing
+module Inertia.PageData exposing
     ( PageData
     , decoder
     )

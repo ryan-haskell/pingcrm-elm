@@ -13,6 +13,7 @@ module Pages.Contacts.Index exposing
 -}
 
 import Browser exposing (Document)
+import Context exposing (Context)
 import Domain.Auth exposing (Auth)
 import Html exposing (..)
 import Html.Attributes exposing (attribute, class, href)
@@ -44,8 +45,8 @@ type alias Model =
     }
 
 
-init : Props -> ( Model, Cmd Msg )
-init props =
+init : Context -> Props -> ( Model, Cmd Msg )
+init ctx props =
     ( { props = props
       }
     , Cmd.none
@@ -60,15 +61,15 @@ type Msg
     = DoNothing
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update : Context -> Msg -> Model -> ( Model, Cmd Msg )
+update ctx msg model =
     case msg of
         DoNothing ->
             ( model, Cmd.none )
 
 
-subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions : Context -> Model -> Sub Msg
+subscriptions ctx model =
     Sub.none
 
 
@@ -76,8 +77,8 @@ subscriptions model =
 -- VIEW
 
 
-view : Model -> Document Msg
-view model =
+view : Context -> Model -> Document Msg
+view ctx model =
     Layouts.Sidebar.view
         { title = "Contacts"
         , user = model.props.auth.user

@@ -14,12 +14,14 @@ module Pages.Auth.Login exposing
 
 import Browser exposing (Document)
 import Components.Logo
+import Context exposing (Context)
 import Domain.Auth exposing (Auth)
+import Extra.Http
 import Html exposing (..)
 import Html.Attributes as Attr exposing (attribute, class, href)
 import Html.Events
 import Http
-import InertiaJs.PageData exposing (PageData)
+import Inertia.PageData exposing (PageData)
 import Json.Decode
 import Json.Encode
 
@@ -45,14 +47,18 @@ type alias Model =
     { email : String
     , password : String
     , remember : Bool
+    , errorEmailField : Maybe String
+    , errorForm : Maybe Http.Error
     }
 
 
-init : Props -> ( Model, Cmd Msg )
-init props =
+init : Context -> Props -> ( Model, Cmd Msg )
+init ctx props =
     ( { email = "johndoe@example.com"
       , password = "secret"
       , remember = True
+      , errorEmailField = Nothing
+      , errorForm = Nothing
       }
     , Cmd.none
     )
@@ -70,8 +76,8 @@ type Msg
     | ApiResponded (Result Http.Error PageData)
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update : Context -> Msg -> Model -> ( Model, Cmd Msg )
+update ctx msg model =
     case msg of
         EmailChanged value ->
             ( { model | email = value }
@@ -98,13 +104,14 @@ update msg model =
                         , ( "remember", Json.Encode.bool model.remember )
                         ]
             in
-            ( model
+            ( { model | errorForm = Nothing }
             , Http.request
                 { method = "POST"
                 , headers =
                     [ Http.header "Accept" "text/html, application/xhtml+xml"
                     , Http.header "X-Requested-With" "XMLHttpRequest"
                     , Http.header "X-Inertia" "true"
+                    , Http.header "X-XSRF-TOKEN" ctx.xsrfToken
                     ]
                 , url = "/login"
                 , body = Http.jsonBody form
@@ -113,23 +120,29 @@ update msg model =
                 , expect =
                     Http.expectJson
                         ApiResponded
-                        InertiaJs.PageData.decoder
+                        Inertia.PageData.decoder
                 }
             )
 
         ApiResponded (Ok pageData) ->
+            let
+                _ =
+                    pageData.props
+                        |> Json.Encode.encode 2
+                        |> Debug.log "props"
+            in
             ( model
             , Cmd.none
             )
 
         ApiResponded (Err httpError) ->
-            ( model
+            ( { model | errorForm = Just httpError }
             , Cmd.none
             )
 
 
-subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions : Context -> Model -> Sub Msg
+subscriptions ctx model =
     Sub.none
 
 
@@ -137,8 +150,8 @@ subscriptions model =
 -- VIEW
 
 
-view : Model -> Document Msg
-view model =
+view : Context -> Model -> Document Msg
+view ctx model =
     { title = "Login"
     , body =
         [ div [ class "flex items-center justify-center p-6 min-h-screen bg-indigo-800" ]
@@ -161,6 +174,7 @@ view model =
                             , input
                                 [ Attr.id "emailField"
                                 , class "form-input"
+                                , Attr.classList [ ( "error", model.errorEmailField /= Nothing ) ]
                                 , Attr.autofocus True
                                 , attribute "autocapitalize" "none"
                                 , Attr.type_ "email"
@@ -168,6 +182,7 @@ view model =
                                 , Attr.value model.email
                                 ]
                                 []
+                            , viewMaybeError model.errorEmailField
                             ]
                         , div [ class "mt-6" ]
                             [ label
@@ -200,7 +215,10 @@ view model =
                             ]
                         ]
                     , div [ class "flex px-10 py-4 bg-gray-100 border-t border-gray-100" ]
-                        [ button
+                        [ model.errorForm
+                            |> Maybe.map Extra.Http.toUserFriendlyMessage
+                            |> viewMaybeError
+                        , button
                             [ class "flex items-center btn-indigo ml-auto"
                             , Attr.type_ "submit"
                             ]
@@ -211,3 +229,13 @@ view model =
             ]
         ]
     }
+
+
+viewMaybeError : Maybe String -> Html msg
+viewMaybeError maybe =
+    case maybe of
+        Just reason ->
+            div [ class "form-error" ] [ text reason ]
+
+        Nothing ->
+            text ""
