@@ -16,4 +16,4 @@ type Msg
             , details : Maybe String
             }
         }
-    | DismissProblem
+    | DismissedProblem

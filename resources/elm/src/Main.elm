@@ -1,4 +1,4 @@
-module Main exposing (main)
+port module Main exposing (main)
 
 import Browser exposing (UrlRequest)
 import Browser.Events
@@ -6,6 +6,7 @@ import Browser.Navigation as Nav exposing (Key)
 import Context exposing (Context)
 import Effect exposing (Effect)
 import Extra.Document exposing (Document)
+import Extra.Http
 import Flags exposing (Flags)
 import Html exposing (Html)
 import Http
@@ -86,7 +87,9 @@ type Msg
     | UrlRequested UrlRequest
     | InertiaPageDataResponded Url (Result Http.Error (PageData Json.Decode.Value))
     | Sidebar Layouts.Sidebar.Msg
+    | ShowProblem { message : String, details : Maybe String }
     | PressedEsc
+    | XsrfTokenRefreshed String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -103,7 +106,10 @@ update msg model =
             )
 
         UrlChanged url ->
-            ( { model | url = url }
+            ( { model
+                | url = url
+                , sidebar = Layouts.Sidebar.dismissDropdown model.sidebar
+              }
             , toInertiaNavigateCmd model url
             )
 
@@ -119,13 +125,18 @@ update msg model =
                     Pages.init context pageData
             in
             ( { model | pageData = pageData, page = page }
-            , toCmd model (Effect.map Page pageCmd)
+            , Cmd.batch
+                [ toCmd model (Effect.map Page pageCmd)
+                , refreshXsrfToken ()
+                ]
             )
 
         InertiaPageDataResponded url (Err httpError) ->
-            -- TODO: Notify user of the problem, they might be offline!
             ( model
-            , Nav.load (Url.toString url)
+            , showProblem
+                { message = Extra.Http.toUserFriendlyMessage httpError
+                , details = Just ("Unable to navigate to " ++ url.path)
+                }
             )
 
         Page pageMsg ->
@@ -150,8 +161,18 @@ update msg model =
                 }
                 |> Tuple.mapSecond (toCmd model)
 
+        ShowProblem problem ->
+            ( { model | sidebar = Layouts.Sidebar.showProblem problem model.sidebar }
+            , Cmd.none
+            )
+
         PressedEsc ->
             ( { model | sidebar = Layouts.Sidebar.dismissDropdown model.sidebar }
+            , Cmd.none
+            )
+
+        XsrfTokenRefreshed token ->
+            ( { model | xsrfToken = token }
             , Cmd.none
             )
 
@@ -169,6 +190,7 @@ subscriptions model =
         [ Pages.subscriptions context model.page
             |> Sub.map Page
         , Browser.Events.onKeyDown onEscDecoder
+        , onXsrfTokenRefreshed XsrfTokenRefreshed
         ]
 
 
@@ -228,11 +250,11 @@ toCmd model effect =
                 |> Task.perform identity
 
         Effect.SendSidebarMsg sidebarMsg ->
-            Task.succeed sidebarMsg
-                |> Task.perform Sidebar
+            Task.succeed (Sidebar sidebarMsg)
+                |> Task.perform identity
 
         Effect.ShowProblem problem ->
-            Debug.todo "SHOW PROBLEM"
+            showProblem problem
 
         Effect.InertiaHttp req ->
             Http.request
@@ -306,3 +328,23 @@ toInertiaNavigateCmd model url =
                     (InertiaPageDataResponded url)
                     (Inertia.PageData.decoder Json.Decode.value)
             }
+
+
+
+-- ERRORS
+
+
+showProblem : { message : String, details : Maybe String } -> Cmd Msg
+showProblem problem =
+    Task.succeed (ShowProblem problem)
+        |> Task.perform identity
+
+
+
+-- PORTS
+
+
+port refreshXsrfToken : () -> Cmd msg
+
+
+port onXsrfTokenRefreshed : (String -> msg) -> Sub msg

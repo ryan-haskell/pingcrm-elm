@@ -16,7 +16,7 @@ toUserFriendlyMessage error =
             "Request timed out."
 
         Http.BadStatus 419 ->
-            "Expired XSRF token."
+            "Session has expired, please refresh."
 
         Http.BadStatus code ->
             "Unexpected status: " ++ String.fromInt code

@@ -15,6 +15,7 @@ module Pages.Reports.Index exposing
 import Browser exposing (Document)
 import Context exposing (Context)
 import Domain.Auth exposing (Auth)
+import Domain.Flash exposing (Flash)
 import Effect exposing (Effect)
 import Html exposing (..)
 import Html.Attributes exposing (attribute, class, href)
@@ -28,13 +29,15 @@ import Layouts.Sidebar
 
 type alias Props =
     { auth : Auth
+    , flash : Flash
     }
 
 
 decoder : Json.Decode.Decoder Props
 decoder =
-    Json.Decode.map Props
+    Json.Decode.map2 Props
         (Json.Decode.field "auth" Domain.Auth.decoder)
+        (Json.Decode.field "flash" Domain.Flash.decoder)
 
 
 
@@ -82,6 +85,7 @@ view : Context -> Model -> Document Msg
 view ctx model =
     Layouts.Sidebar.view
         { model = ctx.sidebar
+        , flash = model.props.flash
         , toMsg = Sidebar
         , url = ctx.url
         , title = "Reports"

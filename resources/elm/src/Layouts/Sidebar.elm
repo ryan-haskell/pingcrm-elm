@@ -1,7 +1,7 @@
 module Layouts.Sidebar exposing
     ( Model, Msg
     , init, update, view
-    , dismissDropdown
+    , dismissDropdown, showProblem
     )
 
 {-|
@@ -9,14 +9,16 @@ module Layouts.Sidebar exposing
 @docs Model, Msg
 @docs init, update, view
 
-@docs dismissDropdown
+@docs dismissDropdown, showProblem
 
 -}
 
 import Browser exposing (Document)
 import Components.Dropdown
+import Components.Flash
 import Components.Icon
 import Components.Logo
+import Domain.Flash exposing (Flash)
 import Effect exposing (Effect)
 import Extra.Http
 import Html exposing (..)
@@ -34,10 +36,13 @@ import Url exposing (Url)
 
 
 type Model
-    = Model
-        { dropdown : DropdownState
-        , problem : Maybe Problem
-        }
+    = Model Internals
+
+
+type alias Internals =
+    { dropdown : DropdownState
+    , problem : Maybe Problem
+    }
 
 
 type DropdownState
@@ -107,7 +112,7 @@ update ({ msg, toModel, toMsg } as args) =
 
         ClickedLogout ->
             return
-                ( Model model
+                ( Model { model | dropdown = Closed }
                 , Effect.delete
                     { url = "/logout"
                     , decoder = Json.Decode.succeed ()
@@ -125,8 +130,8 @@ update ({ msg, toModel, toMsg } as args) =
             return
                 ( Model model
                 , Effect.showProblem
-                    { message = "Unable to log out the current user."
-                    , details = Just (Extra.Http.toUserFriendlyMessage httpError)
+                    { message = Extra.Http.toUserFriendlyMessage httpError
+                    , details = Just "Unable to log out the current user."
                     }
                 )
 
@@ -148,11 +153,11 @@ update ({ msg, toModel, toMsg } as args) =
                             ( Model model
                             , Effect.sendDelayedMsg
                                 { delay = ms
-                                , msg = DismissProblem
+                                , msg = DismissedProblem
                                 }
                             )
 
-        DismissProblem ->
+        DismissedProblem ->
             return ( Model { model | problem = Nothing }, Effect.none )
 
 
@@ -162,6 +167,7 @@ update ({ msg, toModel, toMsg } as args) =
 
 view :
     { model : Model
+    , flash : Flash
     , toMsg : Msg -> msg
     , title : String
     , url : Url
@@ -179,7 +185,7 @@ view props =
         [ div [ class "md:flex md:flex-col" ]
             [ div [ class "md:flex md:flex-col md:h-screen" ]
                 [ viewNavbar props
-                , viewSidebarAndMainContent props
+                , viewSidebarAndMainContent props props.model
                 ]
             ]
         , case model.dropdown of
@@ -313,24 +319,40 @@ viewSidebarAndMainContent :
     { props
         | content : List (Html msg)
         , url : Url
+        , toMsg : Msg -> msg
     }
+    -> Model
     -> Html msg
-viewSidebarAndMainContent { content, url } =
-    div
-        [ class "md:flex md:grow md:overflow-hidden" ]
+viewSidebarAndMainContent { content, url, toMsg } (Model model) =
+    div [ class "md:flex md:grow md:overflow-hidden" ]
         [ div [ class "hidden shrink-0 p-12 w-56 bg-indigo-800 overflow-y-auto md:block" ]
             (viewSidebarLinks url)
         , div
             [ class "px-4 py-8 md:flex-1 md:p-12 md:overflow-y-auto"
             , attribute "scroll-region" ""
             ]
-            content
+            (case model.problem of
+                Just problem ->
+                    Components.Flash.viewErrorMessage
+                        { message = problem.message
+                        , onDismiss = toMsg DismissedProblem
+                        }
+                        :: content
+
+                Nothing ->
+                    content
+            )
         ]
 
 
 dismissDropdown : Model -> Model
 dismissDropdown (Model model) =
     Model { model | dropdown = Closed }
+
+
+showProblem : Problem -> Model -> Model
+showProblem problem (Model model) =
+    Model { model | problem = Just problem }
 
 
 viewLink :
