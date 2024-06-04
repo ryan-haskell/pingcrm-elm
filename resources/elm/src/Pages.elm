@@ -36,7 +36,10 @@ type Model
     | Model_Error500 Pages.Error500.Model
 
 
-init : Context -> PageData -> ( Model, Effect Msg )
+init :
+    Context
+    -> PageData Json.Decode.Value
+    -> ( Model, Effect Msg )
 init context pageData =
     case pageData.component of
         "Auth/Login" ->
@@ -237,7 +240,7 @@ view context model =
 
 initPage :
     { context : Context
-    , pageData : PageData
+    , pageData : PageData Json.Decode.Value
     , decoder : Json.Decode.Decoder props
     , init : Context -> props -> ( pageModel, Effect pageMsg )
     , toModel : pageModel -> Model

@@ -37,7 +37,7 @@ main =
 type alias Model =
     { url : Url
     , key : Key
-    , pageData : PageData
+    , pageData : PageData Json.Decode.Value
     , xsrfToken : String
     , page : Pages.Model
     , sidebar : Layouts.Sidebar.Model
@@ -83,7 +83,7 @@ type Msg
     = Page Pages.Msg
     | UrlChanged Url
     | UrlRequested UrlRequest
-    | InertiaPageDataResponded Url (Result Http.Error PageData)
+    | InertiaPageDataResponded Url (Result Http.Error (PageData Json.Decode.Value))
     | Sidebar Layouts.Sidebar.Msg
 
 
@@ -226,24 +226,15 @@ toCmd model effect =
                 , tracker = Nothing
                 , expect =
                     Http.expectJson (toHttpMsg model req)
-                        (Json.Decode.map4 PageDataWithProps
-                            (Json.Decode.field "component" Json.Decode.string)
-                            (Json.Decode.field "props" req.decoder)
-                            (Json.Decode.field "url" Json.Decode.string)
-                            (Json.Decode.field "version" Json.Decode.string)
-                        )
+                        (Inertia.PageData.decoder req.decoder)
                 }
 
 
-type alias PageDataWithProps =
-    { component : String
-    , props : Msg
-    , url : String
-    , version : String
-    }
-
-
-toHttpMsg : Model -> { req | onFailure : Http.Error -> Msg } -> Result Http.Error PageDataWithProps -> Msg
+toHttpMsg :
+    Model
+    -> { req | onFailure : Http.Error -> Msg }
+    -> Result Http.Error (PageData Msg)
+    -> Msg
 toHttpMsg ({ url } as model) req result =
     case result of
         Ok newPageData ->
@@ -287,5 +278,8 @@ toInertiaNavigateCmd model url =
             , body = Http.emptyBody
             , timeout = Nothing
             , tracker = Nothing
-            , expect = Http.expectJson (InertiaPageDataResponded url) Inertia.PageData.decoder
+            , expect =
+                Http.expectJson
+                    (InertiaPageDataResponded url)
+                    (Inertia.PageData.decoder Json.Decode.value)
             }

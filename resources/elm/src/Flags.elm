@@ -5,6 +5,6 @@ import Json.Decode
 
 
 type alias Flags =
-    { pageData : PageData
+    { pageData : PageData Json.Decode.Value
     , xsrfToken : String
     }
