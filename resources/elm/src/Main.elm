@@ -3,9 +3,11 @@ module Main exposing (main)
 import Browser exposing (UrlRequest)
 import Browser.Navigation as Nav exposing (Key)
 import Context exposing (Context)
+import Effect exposing (Effect)
 import Extra.Document exposing (Document)
 import Flags exposing (Flags)
 import Html exposing (Html)
+import Http
 import Inertia.PageData exposing (PageData)
 import Json.Decode
 import Pages
@@ -130,3 +132,73 @@ view model =
     in
     Pages.view context model.page
         |> Extra.Document.map Page
+
+
+
+-- PERFORMING EFFECTS
+
+
+toCmd :
+    Model
+    -> Effect Msg
+    -> Cmd Msg
+toCmd model effect =
+    case effect of
+        Effect.None ->
+            Cmd.none
+
+        Effect.Batch effects ->
+            Cmd.batch (List.map (toCmd model) effects)
+
+        Effect.InertiaHttp req ->
+            Http.request
+                { method = req.method
+                , url = req.url
+                , headers =
+                    [ Http.header "Accept" "text/html, application/xhtml+xml"
+                    , Http.header "X-Requested-With" "XMLHttpRequest"
+                    , Http.header "X-Inertia" "true"
+                    , Http.header "X-XSRF-TOKEN" model.xsrfToken
+                    ]
+                , body = req.body
+                , timeout = Nothing
+                , tracker = Nothing
+                , expect =
+                    Http.expectJson (toHttpMsg model req)
+                        (Json.Decode.map4 PageDataWithProps
+                            (Json.Decode.field "component" Json.Decode.string)
+                            (Json.Decode.field "props" req.decoder)
+                            (Json.Decode.field "url" Json.Decode.string)
+                            (Json.Decode.field "version" Json.Decode.string)
+                        )
+                }
+
+
+type alias PageDataWithProps =
+    { component : String
+    , props : Msg
+    , url : String
+    , version : String
+    }
+
+
+toHttpMsg : Model -> { req | onFailure : Http.Error -> Msg } -> Result Http.Error PageDataWithProps -> Msg
+toHttpMsg ({ url } as model) req result =
+    case result of
+        Ok newPageData ->
+            if model.pageData.component == newPageData.component then
+                newPageData.props
+
+            else
+                -- TODO: This way of making a URL seems dumb
+                UrlRequested
+                    (Browser.Internal
+                        { url
+                            | path = newPageData.url
+                            , fragment = Nothing
+                            , query = Nothing
+                        }
+                    )
+
+        Err httpError ->
+            req.onFailure httpError
