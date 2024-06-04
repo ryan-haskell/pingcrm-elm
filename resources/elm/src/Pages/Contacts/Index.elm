@@ -15,6 +15,7 @@ module Pages.Contacts.Index exposing
 import Browser exposing (Document)
 import Context exposing (Context)
 import Domain.Auth exposing (Auth)
+import Effect exposing (Effect)
 import Html exposing (..)
 import Html.Attributes exposing (attribute, class, href)
 import Json.Decode
@@ -45,11 +46,11 @@ type alias Model =
     }
 
 
-init : Context -> Props -> ( Model, Cmd Msg )
+init : Context -> Props -> ( Model, Effect Msg )
 init ctx props =
     ( { props = props
       }
-    , Cmd.none
+    , Effect.none
     )
 
 
@@ -61,11 +62,11 @@ type Msg
     = DoNothing
 
 
-update : Context -> Msg -> Model -> ( Model, Cmd Msg )
+update : Context -> Msg -> Model -> ( Model, Effect Msg )
 update ctx msg model =
     case msg of
         DoNothing ->
-            ( model, Cmd.none )
+            ( model, Effect.none )
 
 
 subscriptions : Context -> Model -> Sub Msg

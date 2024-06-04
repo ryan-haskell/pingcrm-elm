@@ -5,5 +5,4 @@ import Url exposing (Url)
 
 type alias Context =
     { url : Url
-    , xsrfToken : String
     }

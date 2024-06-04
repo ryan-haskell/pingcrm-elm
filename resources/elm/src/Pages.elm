@@ -8,6 +8,7 @@ module Pages exposing
     )
 
 import Context exposing (Context)
+import Effect exposing (Effect)
 import Extra.Document exposing (Document)
 import Html exposing (Html)
 import Inertia.PageData exposing (PageData)
@@ -35,7 +36,7 @@ type Model
     | Model_Error500 Pages.Error500.Model
 
 
-init : Context -> PageData -> ( Model, Cmd Msg )
+init : Context -> PageData -> ( Model, Effect Msg )
 init context pageData =
     case pageData.component of
         "Auth/Login" ->
@@ -94,7 +95,7 @@ init context pageData =
                 }
                 |> Tuple.mapBoth
                     Model_Error404
-                    (Cmd.map Msg_Error404)
+                    (Effect.map Msg_Error404)
 
 
 
@@ -111,54 +112,54 @@ type Msg
     | Msg_Error500 Pages.Error500.Msg
 
 
-update : Context -> Msg -> Model -> ( Model, Cmd Msg )
+update : Context -> Msg -> Model -> ( Model, Effect Msg )
 update ctx msg model =
     case ( msg, model ) of
         ( Msg_Auth_Login pageMsg, Model_Auth_Login pageModel ) ->
             Pages.Auth.Login.update ctx pageMsg pageModel
                 |> Tuple.mapBoth
                     Model_Auth_Login
-                    (Cmd.map Msg_Auth_Login)
+                    (Effect.map Msg_Auth_Login)
 
         ( Msg_Dashboard_Index pageMsg, Model_Dashboard_Index pageModel ) ->
             Pages.Dashboard.Index.update ctx pageMsg pageModel
                 |> Tuple.mapBoth
                     Model_Dashboard_Index
-                    (Cmd.map Msg_Dashboard_Index)
+                    (Effect.map Msg_Dashboard_Index)
 
         ( Msg_Organizations_Index pageMsg, Model_Organizations_Index pageModel ) ->
             Pages.Organizations.Index.update ctx pageMsg pageModel
                 |> Tuple.mapBoth
                     Model_Organizations_Index
-                    (Cmd.map Msg_Organizations_Index)
+                    (Effect.map Msg_Organizations_Index)
 
         ( Msg_Contacts_Index pageMsg, Model_Contacts_Index pageModel ) ->
             Pages.Contacts.Index.update ctx pageMsg pageModel
                 |> Tuple.mapBoth
                     Model_Contacts_Index
-                    (Cmd.map Msg_Contacts_Index)
+                    (Effect.map Msg_Contacts_Index)
 
         ( Msg_Reports_Index pageMsg, Model_Reports_Index pageModel ) ->
             Pages.Reports.Index.update ctx pageMsg pageModel
                 |> Tuple.mapBoth
                     Model_Reports_Index
-                    (Cmd.map Msg_Reports_Index)
+                    (Effect.map Msg_Reports_Index)
 
         ( Msg_Error404 pageMsg, Model_Error404 pageModel ) ->
             Pages.Error404.update ctx pageMsg pageModel
                 |> Tuple.mapBoth
                     Model_Error404
-                    (Cmd.map Msg_Error404)
+                    (Effect.map Msg_Error404)
 
         ( Msg_Error500 pageMsg, Model_Error500 pageModel ) ->
             Pages.Error500.update ctx pageMsg pageModel
                 |> Tuple.mapBoth
                     Model_Error500
-                    (Cmd.map Msg_Error500)
+                    (Effect.map Msg_Error500)
 
         _ ->
             ( model
-            , Cmd.none
+            , Effect.none
             )
 
 
@@ -238,18 +239,18 @@ initPage :
     { context : Context
     , pageData : PageData
     , decoder : Json.Decode.Decoder props
-    , init : Context -> props -> ( pageModel, Cmd pageMsg )
+    , init : Context -> props -> ( pageModel, Effect pageMsg )
     , toModel : pageModel -> Model
     , toMsg : pageMsg -> Msg
     }
-    -> ( Model, Cmd Msg )
+    -> ( Model, Effect Msg )
 initPage options =
     case Json.Decode.decodeValue options.decoder options.pageData.props of
         Ok props ->
             options.init options.context props
                 |> Tuple.mapBoth
                     options.toModel
-                    (Cmd.map options.toMsg)
+                    (Effect.map options.toMsg)
 
         Err jsonDecodeError ->
             Pages.Error500.init options.context
@@ -258,4 +259,4 @@ initPage options =
                 }
                 |> Tuple.mapBoth
                     Model_Error500
-                    (Cmd.map Msg_Error500)
+                    (Effect.map Msg_Error500)

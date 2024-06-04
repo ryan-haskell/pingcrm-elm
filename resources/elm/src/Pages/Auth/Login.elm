@@ -16,6 +16,7 @@ import Browser exposing (Document)
 import Components.Logo
 import Context exposing (Context)
 import Domain.Auth exposing (Auth)
+import Effect exposing (Effect)
 import Extra.Http
 import Html exposing (..)
 import Html.Attributes as Attr exposing (attribute, class, href)
@@ -47,20 +48,20 @@ type alias Model =
     { email : String
     , password : String
     , remember : Bool
-    , errorEmailField : Maybe String
-    , errorForm : Maybe Http.Error
+    , emailError : Maybe String
+    , formError : Maybe Http.Error
     }
 
 
-init : Context -> Props -> ( Model, Cmd Msg )
+init : Context -> Props -> ( Model, Effect Msg )
 init ctx props =
     ( { email = "johndoe@example.com"
       , password = "secret"
       , remember = True
-      , errorEmailField = Nothing
-      , errorForm = Nothing
+      , emailError = Nothing
+      , formError = Nothing
       }
-    , Cmd.none
+    , Effect.none
     )
 
 
@@ -73,25 +74,36 @@ type Msg
     | PasswordChanged String
     | RememberChanged Bool
     | FormSubmitted
-    | ApiResponded (Result Http.Error PageData)
+    | ApiResponded (Result Http.Error LoginResponse)
 
 
-update : Context -> Msg -> Model -> ( Model, Cmd Msg )
+type alias LoginResponse =
+    { emailError : Maybe String
+    }
+
+
+loginResponseDecoder : Json.Decode.Decoder LoginResponse
+loginResponseDecoder =
+    Json.Decode.map LoginResponse
+        (Json.Decode.maybe (Json.Decode.at [ "errors", "email" ] Json.Decode.string))
+
+
+update : Context -> Msg -> Model -> ( Model, Effect Msg )
 update ctx msg model =
     case msg of
         EmailChanged value ->
-            ( { model | email = value }
-            , Cmd.none
+            ( { model | email = value, emailError = Nothing }
+            , Effect.none
             )
 
         PasswordChanged value ->
-            ( { model | password = value }
-            , Cmd.none
+            ( { model | password = value, emailError = Nothing }
+            , Effect.none
             )
 
         RememberChanged bool ->
             ( { model | remember = bool }
-            , Cmd.none
+            , Effect.none
             )
 
         FormSubmitted ->
@@ -104,40 +116,23 @@ update ctx msg model =
                         , ( "remember", Json.Encode.bool model.remember )
                         ]
             in
-            ( { model | errorForm = Nothing }
-            , Http.request
-                { method = "POST"
-                , headers =
-                    [ Http.header "Accept" "text/html, application/xhtml+xml"
-                    , Http.header "X-Requested-With" "XMLHttpRequest"
-                    , Http.header "X-Inertia" "true"
-                    , Http.header "X-XSRF-TOKEN" ctx.xsrfToken
-                    ]
-                , url = "/login"
-                , body = Http.jsonBody form
-                , timeout = Nothing
-                , tracker = Nothing
-                , expect =
-                    Http.expectJson
-                        ApiResponded
-                        Inertia.PageData.decoder
+            ( { model | formError = Nothing }
+            , Effect.post
+                { url = "/login"
+                , body = form
+                , decoder = loginResponseDecoder
+                , onResponse = ApiResponded
                 }
             )
 
-        ApiResponded (Ok pageData) ->
-            let
-                _ =
-                    pageData.props
-                        |> Json.Encode.encode 2
-                        |> Debug.log "props"
-            in
-            ( model
-            , Cmd.none
+        ApiResponded (Ok response) ->
+            ( { model | emailError = response.emailError }
+            , Effect.none
             )
 
         ApiResponded (Err httpError) ->
-            ( { model | errorForm = Just httpError }
-            , Cmd.none
+            ( { model | formError = Just httpError }
+            , Effect.none
             )
 
 
@@ -174,7 +169,7 @@ view ctx model =
                             , input
                                 [ Attr.id "emailField"
                                 , class "form-input"
-                                , Attr.classList [ ( "error", model.errorEmailField /= Nothing ) ]
+                                , Attr.classList [ ( "error", model.emailError /= Nothing ) ]
                                 , Attr.autofocus True
                                 , attribute "autocapitalize" "none"
                                 , Attr.type_ "email"
@@ -182,7 +177,7 @@ view ctx model =
                                 , Attr.value model.email
                                 ]
                                 []
-                            , viewMaybeError model.errorEmailField
+                            , viewMaybeError model.emailError
                             ]
                         , div [ class "mt-6" ]
                             [ label
@@ -215,7 +210,7 @@ view ctx model =
                             ]
                         ]
                     , div [ class "flex px-10 py-4 bg-gray-100 border-t border-gray-100" ]
-                        [ model.errorForm
+                        [ model.formError
                             |> Maybe.map Extra.Http.toUserFriendlyMessage
                             |> viewMaybeError
                         , button

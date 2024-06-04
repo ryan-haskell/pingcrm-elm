@@ -46,19 +46,22 @@ init flags url key =
         context : Context
         context =
             { url = url
-            , xsrfToken = flags.xsrfToken
             }
 
         ( page, pageCmd ) =
             Pages.init context flags.pageData
+
+        model : Model
+        model =
+            { url = url
+            , key = key
+            , pageData = flags.pageData
+            , xsrfToken = flags.xsrfToken
+            , page = page
+            }
     in
-    ( { url = url
-      , key = key
-      , pageData = flags.pageData
-      , xsrfToken = flags.xsrfToken
-      , page = page
-      }
-    , Cmd.map Page pageCmd
+    ( model
+    , toCmd model (Effect.map Page pageCmd)
     )
 
 
@@ -70,6 +73,7 @@ type Msg
     = Page Pages.Msg
     | UrlChanged Url
     | UrlRequested UrlRequest
+    | InertiaPageDataResponded Url (Result Http.Error PageData)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -77,12 +81,35 @@ update msg model =
     case msg of
         UrlRequested (Browser.Internal url) ->
             ( model
-            , Nav.load (Url.toString url)
+            , toInertiaNavigateCmd model url
             )
 
         UrlRequested (Browser.External href) ->
             ( model
             , Nav.load href
+            )
+
+        InertiaPageDataResponded url (Ok pageData) ->
+            let
+                context : Context
+                context =
+                    { url = url
+                    }
+
+                ( page, pageCmd ) =
+                    Pages.init context pageData
+            in
+            ( { model | pageData = pageData, page = page }
+            , Cmd.batch
+                [ Nav.pushUrl model.key (Url.toString url)
+                , toCmd model (Effect.map Page pageCmd)
+                ]
+            )
+
+        InertiaPageDataResponded url (Err httpError) ->
+            -- TODO: Notify user of the problem, they might be offline!
+            ( model
+            , Nav.load (Url.toString url)
             )
 
         UrlChanged url ->
@@ -95,13 +122,12 @@ update msg model =
                 context : Context
                 context =
                     { url = model.url
-                    , xsrfToken = model.xsrfToken
                     }
             in
             Pages.update context pageMsg model.page
                 |> Tuple.mapBoth
                     (\page -> { model | page = page })
-                    (Cmd.map Page)
+                    (Effect.map Page >> toCmd model)
 
 
 subscriptions : Model -> Sub Msg
@@ -110,7 +136,6 @@ subscriptions model =
         context : Context
         context =
             { url = model.url
-            , xsrfToken = model.xsrfToken
             }
     in
     Pages.subscriptions context model.page
@@ -127,7 +152,6 @@ view model =
         context : Context
         context =
             { url = model.url
-            , xsrfToken = model.xsrfToken
             }
     in
     Pages.view context model.page
@@ -202,3 +226,29 @@ toHttpMsg ({ url } as model) req result =
 
         Err httpError ->
             req.onFailure httpError
+
+
+
+-- INERTIA NAVIGATION
+
+
+toInertiaNavigateCmd : Model -> Url -> Cmd Msg
+toInertiaNavigateCmd model url =
+    if model.url == url then
+        Cmd.none
+
+    else
+        Http.request
+            { method = "GET"
+            , url = url.path
+            , headers =
+                [ Http.header "Accept" "text/html, application/xhtml+xml"
+                , Http.header "X-Requested-With" "XMLHttpRequest"
+                , Http.header "X-Inertia" "true"
+                , Http.header "X-XSRF-TOKEN" model.xsrfToken
+                ]
+            , body = Http.emptyBody
+            , timeout = Nothing
+            , tracker = Nothing
+            , expect = Http.expectJson (InertiaPageDataResponded url) Inertia.PageData.decoder
+            }

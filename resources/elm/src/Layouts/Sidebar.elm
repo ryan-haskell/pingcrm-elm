@@ -39,8 +39,7 @@ viewNavbar { user } =
     div
         [ class "md:flex md:shrink-0" ]
         [ div [ class "flex items-center justify-between px-6 py-4 bg-indigo-900 md:shrink-0 md:justify-center md:w-56" ]
-            [ a
-                [ class "mt-1", href "/" ]
+            [ a [ class "mt-1", href "/" ]
                 [ Components.Logo.view
                 ]
             , button
@@ -72,42 +71,31 @@ viewSidebarAndMainContent :
 viewSidebarAndMainContent { content } =
     div
         [ class "md:flex md:grow md:overflow-hidden" ]
-        [ div
-            [ class
-                "hidden shrink-0 p-12 w-56 bg-indigo-800 overflow-y-auto md:block"
-            ]
-            [ div
-                [ class "mb-4" ]
-                [ a
-                    [ class "group flex items-center py-3", href "/" ]
+        [ div [ class "hidden shrink-0 p-12 w-56 bg-indigo-800 overflow-y-auto md:block" ]
+            [ div [ class "mb-4" ]
+                [ a [ class "group flex items-center py-3", href "/" ]
                     [ Components.Icon.dashboard
                     , div [ class "text-white" ] [ text "Dashboard" ]
                     ]
                 ]
-            , div
-                [ class "mb-4" ]
-                [ a
-                    [ class "group flex items-center py-3", href "/organizations" ]
+            , div [ class "mb-4" ]
+                [ a [ class "group flex items-center py-3", href "/organizations" ]
                     [ Components.Icon.organizations
                     , div
                         [ class "text-indigo-300 group-hover:text-white" ]
                         [ text "Organizations" ]
                     ]
                 ]
-            , div
-                [ class "mb-4" ]
-                [ a
-                    [ class "group flex items-center py-3", href "/contacts" ]
+            , div [ class "mb-4" ]
+                [ a [ class "group flex items-center py-3", href "/contacts" ]
                     [ Components.Icon.contacts
                     , div
                         [ class "text-indigo-300 group-hover:text-white" ]
                         [ text "Contacts" ]
                     ]
                 ]
-            , div
-                [ class "mb-4" ]
-                [ a
-                    [ class "group flex items-center py-3", href "/reports" ]
+            , div [ class "mb-4" ]
+                [ a [ class "group flex items-center py-3", href "/reports" ]
                     [ Components.Icon.reports
                     , div
                         [ class "text-indigo-300 group-hover:text-white" ]
