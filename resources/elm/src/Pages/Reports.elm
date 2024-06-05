@@ -116,7 +116,7 @@ view ctx model =
             , p [ class "mb-4 leading-normal" ]
                 [ text "Our legal team would like to notify customers that their report data was not sold to fund our separate venture, \"Hamster Yacht Incorporated\". These allegations are unverified and baseless." ]
             , p [ class "mb-8 leading-normal" ]
-                [ text "However, it is true that the hamsters are been trained to drive the fleet of mini-yachts. Thank you."
+                [ text "However, it is true that the hamsters have been trained to drive the fleet of mini-yachts. Thank you."
                 ]
             ]
         , overlays = []
