@@ -394,7 +394,7 @@ viewSidebarAndMainContent { content, context, toMsg, flash } (Model model) =
             (viewSidebarLinks context.url)
         , div
             [ class "px-4 py-8 md:flex-1 md:p-12 md:overflow-y-auto"
-            , attribute "scroll-region" ""
+            , Attr.id "scroll-region"
             ]
             (case model.problem of
                 Just problem ->

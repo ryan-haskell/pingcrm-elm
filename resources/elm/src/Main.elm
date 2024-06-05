@@ -1,6 +1,7 @@
 port module Main exposing (main)
 
 import Browser exposing (UrlRequest)
+import Browser.Dom
 import Browser.Events
 import Browser.Navigation as Nav exposing (Key)
 import Context exposing (Context)
@@ -88,6 +89,7 @@ type Msg
     | InertiaPageDataResponded Url (Result Http.Error (PageData Json.Decode.Value))
     | Resize Int Int
     | XsrfTokenRefreshed String
+    | ScrollFinished
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -127,6 +129,7 @@ update msg model =
             , Cmd.batch
                 [ toCmd model (Effect.map Page pageCmd)
                 , refreshXsrfToken ()
+                , scrollToTop
                 ]
             )
 
@@ -160,6 +163,15 @@ update msg model =
             ( { model | isMobile = width <= 740 }
             , Cmd.none
             )
+
+        ScrollFinished ->
+            ( model, Cmd.none )
+
+
+scrollToTop : Cmd Msg
+scrollToTop =
+    Browser.Dom.setViewportOf "scroll-region" 0 0
+        |> Task.attempt (\_ -> ScrollFinished)
 
 
 subscriptions : Model -> Sub Msg
