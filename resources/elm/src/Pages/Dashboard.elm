@@ -120,4 +120,5 @@ view ctx model =
                 , text " works."
                 ]
             ]
+        , overlays = []
         }

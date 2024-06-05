@@ -15,6 +15,7 @@ module Pages.Organizations exposing
 -}
 
 import Browser exposing (Document)
+import Components.Dropdown
 import Components.Icon
 import Components.Table
 import Context exposing (Context)
@@ -60,7 +61,6 @@ decoder =
 type alias Model =
     { props : Props
     , table : Components.Table.Model
-    , mostRecentSearch : Maybe String
     , sidebar : Layouts.Sidebar.Model
     }
 
@@ -69,8 +69,7 @@ init : Context -> Props -> ( Model, Effect Msg )
 init ctx props =
     ( { props = props
       , sidebar = Layouts.Sidebar.init
-      , table = Components.Table.init
-      , mostRecentSearch = Nothing
+      , table = Components.Table.init ctx
       }
     , Effect.none
     )
@@ -90,7 +89,7 @@ onPropsChanged ctx props model =
 type Msg
     = Sidebar Layouts.Sidebar.Msg
     | Table Components.Table.Msg
-    | Search String
+    | ChangedFilter String
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
@@ -110,24 +109,13 @@ update ctx msg model =
                 , model = model.table
                 , toModel = \table -> { model | table = table }
                 , toMsg = Table
-                , onSearchChanged = Search
+                , onFilterChanged = ChangedFilter
                 }
 
-        Search value ->
-            ( { model | mostRecentSearch = Just value }
-            , Effect.pushUrl (toSearchUrl value model)
+        ChangedFilter newUrl ->
+            ( model
+            , Effect.pushUrl newUrl
             )
-
-
-toSearchUrl : String -> Model -> String
-toSearchUrl value model =
-    if String.isEmpty (String.trim value) then
-        "/organizations"
-
-    else
-        Url.Builder.absolute
-            [ "organizations" ]
-            [ Url.Builder.string "search" value ]
 
 
 subscriptions : Context -> Model -> Sub Msg
@@ -154,15 +142,23 @@ view ctx model =
             [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Organizations" ]
             , Components.Table.view
                 { context = ctx
+                , model = model.table
+                , toMsg = Table
                 , name = "Organization"
-                , baseUrl = "/organizations"
+                , baseUrl = "organizations"
                 , toId = .id
                 , columns = columns
                 , rows = model.props.organizations
                 , lastPage = model.props.lastPage
-                , toMsg = Table
                 }
-                model.table
+            ]
+        , overlays =
+            [ Components.Table.viewOverlay
+                { context = ctx
+                , model = model.table
+                , toMsg = Table
+                , baseUrl = "organizations"
+                }
             ]
         }
 

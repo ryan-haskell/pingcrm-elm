@@ -1,23 +1,21 @@
 module Components.Table exposing
-    ( Props
-    , Model, init
+    ( Model, init
     , Msg, update
-    , view
+    , view, viewOverlay
     , Column
     )
 
 {-|
 
-@docs Props
-
 @docs Model, init
 @docs Msg, update
-@docs view
+@docs view, viewOverlay
 
 @docs Column
 
 -}
 
+import Components.Dropdown
 import Components.Icon
 import Context exposing (Context)
 import Effect exposing (Effect)
@@ -25,26 +23,7 @@ import Extra.Url
 import Html exposing (..)
 import Html.Attributes as Attr exposing (class, href, style)
 import Html.Events
-
-
-
--- PROPS
-
-
-type alias Props data msg =
-    { context : Context
-    , name : String
-    , baseUrl : String
-    , toId : data -> Int
-    , columns : List (Column data)
-    , rows : List data
-    , lastPage : Int
-    , toMsg : Msg -> msg
-    }
-
-
-type alias Column data =
-    { name : String, toValue : data -> String }
+import Url.Builder
 
 
 
@@ -54,12 +33,18 @@ type alias Column data =
 type Model
     = Model
         { search : String
+        , trashed : String
+        , isFilterDropdownOpen : Bool
         }
 
 
-init : Model
-init =
-    Model { search = "" }
+init : Context -> Model
+init { url } =
+    Model
+        { search = Extra.Url.getQueryParameter "search" url |> Maybe.withDefault ""
+        , trashed = Extra.Url.getQueryParameter "trashed" url |> Maybe.withDefault ""
+        , isFilterDropdownOpen = False
+        }
 
 
 
@@ -67,9 +52,11 @@ init =
 
 
 type Msg
-    = ChangedSearch String
+    = ChangedSearchFilter String String
+    | ChangedTrashFilter String String
     | ClickedReset String
     | OpenedFilterDropdown
+    | DismissedFilterDropdownMenu
 
 
 update :
@@ -77,7 +64,7 @@ update :
     , model : Model
     , toModel : Model -> model
     , toMsg : Msg -> msg
-    , onSearchChanged : String -> msg
+    , onFilterChanged : String -> msg
     }
     -> ( model, Effect msg )
 update ({ msg, toModel, toMsg } as args) =
@@ -88,50 +75,124 @@ update ({ msg, toModel, toMsg } as args) =
         return : ( Model, Effect Msg ) -> ( model, Effect msg )
         return tuple =
             Tuple.mapBoth toModel (Effect.map toMsg) tuple
-    in
-    case msg of
-        ChangedSearch search ->
-            ( Model { model | search = search }
-                |> toModel
-            , args.onSearchChanged search
+
+        returnFilterChanged : String -> Model -> ( model, Effect msg )
+        returnFilterChanged baseUrl newModel =
+            ( toModel newModel
+            , args.onFilterChanged (toFilterUrl baseUrl newModel)
                 |> Effect.sendMsg
             )
+    in
+    case msg of
+        ChangedSearchFilter baseUrl value ->
+            Model { model | search = value }
+                |> returnFilterChanged baseUrl
+
+        ChangedTrashFilter baseUrl value ->
+            Model { model | trashed = value }
+                |> returnFilterChanged baseUrl
 
         ClickedReset baseUrl ->
             return
-                ( Model model
-                , Effect.pushUrl baseUrl
+                ( Model { model | search = "", trashed = "" }
+                , Effect.pushUrl (Url.Builder.absolute [ baseUrl ] [])
                 )
 
         OpenedFilterDropdown ->
-            -- TODO
             return
-                ( Model model
+                ( Model { model | isFilterDropdownOpen = True }
                 , Effect.none
                 )
+
+        DismissedFilterDropdownMenu ->
+            return
+                ( Model { model | isFilterDropdownOpen = False }
+                , Effect.none
+                )
+
+
+isBlank : String -> Bool
+isBlank str =
+    String.isEmpty (String.trim str)
+
+
+toFilterUrl : String -> Model -> String
+toFilterUrl baseUrl (Model model) =
+    Url.Builder.absolute [ baseUrl ] (toFilterQueryParameters (Model model))
+
+
+toFilterQueryParameters : Model -> List Url.Builder.QueryParameter
+toFilterQueryParameters (Model model) =
+    List.concat
+        [ if isBlank model.search then
+            []
+
+          else
+            [ Url.Builder.string "search" model.search ]
+        , if isBlank model.trashed then
+            []
+
+          else
+            [ Url.Builder.string "trashed" model.trashed ]
+        ]
 
 
 
 -- VIEW
 
 
-view : Props data msg -> Model -> Html msg
-view props model =
+view :
+    { context : Context
+    , model : Model
+    , toMsg : Msg -> msg
+    , name : String
+    , baseUrl : String
+    , toId : data -> Int
+    , columns : List (Column data)
+    , rows : List data
+    , lastPage : Int
+    }
+    -> Html msg
+view props =
     div []
-        [ viewTableFilters props model
+        [ viewTableFilters props
         , viewTableData props
         , viewTableFooter props
         ]
 
 
-viewTableFilters : Props data msg -> Model -> Html msg
-viewTableFilters props (Model model) =
+type alias Props data msg =
+    { context : Context
+    , model : Model
+    , toMsg : Msg -> msg
+    , name : String
+    , baseUrl : String
+    , toId : data -> Int
+    , columns : List (Column data)
+    , rows : List data
+    , lastPage : Int
+    }
+
+
+type alias Column data =
+    { name : String
+    , toValue : data -> String
+    }
+
+
+viewTableFilters : Props data msg -> Html msg
+viewTableFilters props =
+    let
+        (Model model) =
+            props.model
+    in
     div [ class "flex items-center justify-between mb-6" ]
         [ div [ class "flex items-center mr-4 w-full max-w-md" ]
             [ div [ class "flex w-full bg-white rounded shadow" ]
                 [ button
                     [ Attr.type_ "button"
                     , class "focus:z-10 px-4 hover:bg-gray-100 border-r focus:border-white rounded-l focus:ring md:px-6"
+                    , Html.Events.onClick (props.toMsg OpenedFilterDropdown)
                     ]
                     [ div [ class "flex items-baseline" ]
                         [ span [ class "hidden text-gray-700 md:inline" ]
@@ -145,7 +206,7 @@ viewTableFilters props (Model model) =
                     , Attr.type_ "text"
                     , Attr.name "search"
                     , Attr.placeholder "Search…"
-                    , Html.Events.onInput (ChangedSearch >> props.toMsg)
+                    , Html.Events.onInput (ChangedSearchFilter props.baseUrl >> props.toMsg)
                     , Attr.value model.search
                     ]
                     []
@@ -157,7 +218,10 @@ viewTableFilters props (Model model) =
                 ]
                 [ text "Reset" ]
             ]
-        , a [ class "btn-indigo", href (props.baseUrl ++ "/create") ]
+        , a
+            [ class "btn-indigo"
+            , href (Url.Builder.absolute [ props.baseUrl, "create" ] [])
+            ]
             [ span [] [ text "Create" ]
             , text " "
             , span [ class "hidden md:inline" ] [ text props.name ]
@@ -167,13 +231,24 @@ viewTableFilters props (Model model) =
 
 viewTableData : Props data msg -> Html msg
 viewTableData props =
-    div [ class "bg-white rounded-md shadow overflow-x-auto" ]
-        [ table
-            [ class "w-full whitespace-nowrap" ]
-            [ thead [] [ viewTableHeaderRow props ]
-            , tbody [] (List.map (viewTableBodyRow props) props.rows)
+    if List.isEmpty props.rows then
+        p [ class "py-3" ]
+            [ text "No results found for this search. "
+            , a
+                [ class "underline hover:text-gray-700 focus:text-indigo-500"
+                , href (Url.Builder.absolute [ props.baseUrl ] [])
+                ]
+                [ text "Reset filters" ]
             ]
-        ]
+
+    else
+        div [ class "bg-white rounded-md shadow overflow-x-auto" ]
+            [ table
+                [ class "w-full whitespace-nowrap" ]
+                [ thead [] [ viewTableHeaderRow props ]
+                , tbody [] (List.map (viewTableBodyRow props) props.rows)
+                ]
+            ]
 
 
 viewTableHeaderRow : Props data msg -> Html msg
@@ -206,7 +281,7 @@ viewTableBodyRow props data =
     let
         editUrl : String
         editUrl =
-            props.baseUrl ++ "/" ++ String.fromInt (props.toId data) ++ "/edit"
+            Url.Builder.absolute [ props.baseUrl, String.fromInt (props.toId data), "edit" ] []
 
         viewCell : Int -> (data -> String) -> Html msg
         viewCell index toValue =
@@ -236,20 +311,24 @@ viewTableBodyRow props data =
                     ]
                     [ text (toValue data) ]
                 ]
+
+        viewLastCell : Html msg
+        viewLastCell =
+            td [ class "w-px border-t" ]
+                [ a
+                    [ class "flex items-center px-4"
+                    , Attr.tabindex -1
+                    , href editUrl
+                    ]
+                    [ Components.Icon.chevronRight ]
+                ]
     in
     tr [ class "hover:bg-gray-100 focus-within:bg-gray-100" ]
         ((props.columns
             |> List.map .toValue
             |> List.indexedMap viewCell
          )
-            ++ [ td [ class "w-px border-t" ]
-                    [ a
-                        [ class "flex items-center px-4"
-                        , Attr.tabindex -1
-                        , href editUrl
-                        ]
-                        [ Components.Icon.chevronRight ]
-                    ]
+            ++ [ viewLastCell
                ]
         )
 
@@ -263,12 +342,20 @@ viewTableFooter props =
                 |> Maybe.andThen String.toInt
                 |> Maybe.withDefault 1
 
+        toPageFilterUrl : Int -> String
+        toPageFilterUrl page =
+            Url.Builder.absolute [ props.baseUrl ]
+                (toFilterQueryParameters props.model
+                    ++ [ Url.Builder.string "page" (String.fromInt page)
+                       ]
+                )
+
         viewPreviousLink : Html msg
         viewPreviousLink =
             viewLink
                 { label = "« Previous"
                 , isDisabled = currentPage == 1
-                , url = props.baseUrl ++ "?page=" ++ String.fromInt (currentPage - 1)
+                , url = toPageFilterUrl (currentPage - 1)
                 }
 
         viewNextLink : Html msg
@@ -276,17 +363,17 @@ viewTableFooter props =
             viewLink
                 { label = "Next »"
                 , isDisabled = currentPage == props.lastPage
-                , url = props.baseUrl ++ "?page=" ++ String.fromInt (currentPage + 1)
+                , url = toPageFilterUrl (currentPage + 1)
                 }
 
         viewPageNumberLink : Int -> Html msg
-        viewPageNumberLink num =
+        viewPageNumberLink page =
             a
                 [ class "mb-1 mr-1 px-4 py-3 focus:text-indigo-500 text-sm leading-4 hover:bg-white border focus:border-indigo-500 rounded"
-                , Attr.classList [ ( "bg-white", currentPage == num ) ]
-                , href (props.baseUrl ++ "?page=" ++ String.fromInt num)
+                , Attr.classList [ ( "bg-white", currentPage == page ) ]
+                , href (toPageFilterUrl page)
                 ]
-                [ text (String.fromInt num) ]
+                [ text (String.fromInt page) ]
 
         viewLink :
             { label : String
@@ -305,12 +392,63 @@ viewTableFooter props =
                     ]
                     [ text link.label ]
     in
-    div [ class "mt-6" ]
-        [ div [ class "flex flex-wrap -mb-1" ]
-            (List.concat
-                [ [ viewPreviousLink ]
-                , List.range 1 10 |> List.map viewPageNumberLink
-                , [ viewNextLink ]
-                ]
-            )
-        ]
+    if props.lastPage == 1 then
+        text ""
+
+    else
+        div [ class "mt-6" ]
+            [ div [ class "flex flex-wrap -mb-1" ]
+                (List.concat
+                    [ [ viewPreviousLink ]
+                    , List.range 1 (min 10 props.lastPage) |> List.map viewPageNumberLink
+                    , [ viewNextLink ]
+                    ]
+                )
+            ]
+
+
+viewOverlay :
+    { context : Context
+    , model : Model
+    , toMsg : Msg -> msg
+    , baseUrl : String
+    }
+    -> Html msg
+viewOverlay props =
+    let
+        (Model model) =
+            props.model
+
+        viewFilterDropdown : Html msg
+        viewFilterDropdown =
+            Components.Dropdown.view
+                { anchor = Components.Dropdown.TopLeft
+                , offset =
+                    if props.context.isMobile then
+                        ( 16, 265 )
+
+                    else
+                        ( 272, 224 )
+                , onDismiss = props.toMsg DismissedFilterDropdownMenu
+                , content =
+                    div
+                        [ class "mt-2 px-4 py-6 w-screen bg-white rounded shadow-xl"
+                        , Attr.style "max-width" "300px"
+                        ]
+                        [ label [ class "block text-gray-700" ] [ text "Trashed:" ]
+                        , select
+                            [ class "form-select mt-1 w-full"
+                            , Html.Events.onInput (ChangedTrashFilter props.baseUrl >> props.toMsg)
+                            ]
+                            [ option [] []
+                            , option [ Attr.value "with", Attr.selected (model.trashed == "with") ] [ text "With Trashed" ]
+                            , option [ Attr.value "only", Attr.selected (model.trashed == "only") ] [ text "Only Trashed" ]
+                            ]
+                        ]
+                }
+    in
+    if model.isFilterDropdownOpen then
+        viewFilterDropdown
+
+    else
+        text ""

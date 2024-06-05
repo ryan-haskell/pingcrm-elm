@@ -114,4 +114,5 @@ view ctx model =
                 [ text "TODO: Implement the contacts page"
                 ]
             ]
+        , overlays = []
         }

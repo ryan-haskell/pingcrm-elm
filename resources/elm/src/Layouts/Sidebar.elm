@@ -120,6 +120,7 @@ update ({ msg, toModel, toMsg } as args) =
                 )
 
         PressedEsc ->
+            -- TODO: Make it so this also tells page to dismiss any of it's dropdowns
             return
                 ( Model { model | dropdown = Closed }
                 , Effect.none
@@ -181,58 +182,7 @@ update ({ msg, toModel, toMsg } as args) =
 
 
 
--- VIEW
-
-
-view :
-    { model : Model
-    , flash : Flash
-    , toMsg : Msg -> msg
-    , context : { context | url : Url, isMobile : Bool }
-    , title : String
-    , user : User user account
-    , content : List (Html msg)
-    }
-    -> Document msg
-view props =
-    let
-        (Model model) =
-            props.model
-    in
-    { title = props.title
-    , body =
-        [ div [ class "md:flex md:flex-col" ]
-            [ div [ class "md:flex md:flex-col md:h-screen" ]
-                [ viewNavbar props
-                , viewSidebarAndMainContent props props.model
-                ]
-            ]
-        , case model.dropdown of
-            Closed ->
-                text ""
-
-            ShowingUserDropdown ->
-                Components.Dropdown.view
-                    { anchor = Components.Dropdown.TopRight
-                    , offset =
-                        if props.context.isMobile then
-                            ( -16, 104 )
-
-                        else
-                            ( -48, 44 )
-                    , content = viewUserDropdownMenu props
-                    , onDismiss = props.toMsg ClickedDismissDropdown
-                    }
-
-            ShowingHamburgerMenuDropdown ->
-                Components.Dropdown.view
-                    { anchor = Components.Dropdown.TopRight
-                    , offset = ( -24, 44 )
-                    , content = viewMobileNavMenu props
-                    , onDismiss = props.toMsg ClickedDismissDropdown
-                    }
-        ]
-    }
+-- SUBSCRIPTIONS
 
 
 subscriptions : { model : Model, toMsg : Msg -> msg } -> Sub msg
@@ -253,6 +203,79 @@ onEscDecoder =
                 else
                     Json.Decode.fail "Other key pressed"
             )
+
+
+
+-- VIEW
+
+
+view :
+    { model : Model
+    , flash : Flash
+    , toMsg : Msg -> msg
+    , context : { context | url : Url, isMobile : Bool }
+    , title : String
+    , user :
+        { user
+            | first_name : String
+            , last_name : String
+            , account : { account | name : String }
+        }
+    , content : List (Html msg)
+    , overlays : List (Html msg)
+    }
+    -> Document msg
+view props =
+    let
+        (Model model) =
+            props.model
+    in
+    { title = props.title
+    , body =
+        [ div [ class "md:flex md:flex-col" ]
+            [ div [ class "md:flex md:flex-col md:h-screen" ]
+                [ viewNavbar props
+                , viewSidebarAndMainContent props props.model
+                ]
+            ]
+        , viewSidebarDropdowns props props.model
+        , div [ class "overlays" ] props.overlays
+        ]
+    }
+
+
+viewSidebarDropdowns :
+    { props
+        | toMsg : Msg -> msg
+        , context : { context | url : Url, isMobile : Bool }
+    }
+    -> Model
+    -> Html msg
+viewSidebarDropdowns props (Model model) =
+    case model.dropdown of
+        Closed ->
+            text ""
+
+        ShowingUserDropdown ->
+            Components.Dropdown.view
+                { anchor = Components.Dropdown.TopRight
+                , offset =
+                    if props.context.isMobile then
+                        ( -16, 104 )
+
+                    else
+                        ( -48, 44 )
+                , content = viewUserDropdownMenu props
+                , onDismiss = props.toMsg ClickedDismissDropdown
+                }
+
+        ShowingHamburgerMenuDropdown ->
+            Components.Dropdown.view
+                { anchor = Components.Dropdown.TopRight
+                , offset = ( -24, 44 )
+                , content = viewMobileNavMenu props
+                , onDismiss = props.toMsg ClickedDismissDropdown
+                }
 
 
 viewMobileNavMenu : { props | context : { context | url : Url } } -> Html msg
@@ -310,17 +333,14 @@ viewUserDropdownMenu props =
         ]
 
 
-type alias User user account =
-    { user
-        | first_name : String
-        , last_name : String
-        , account : { account | name : String }
-    }
-
-
 viewNavbar :
     { props
-        | user : User user account
+        | user :
+            { user
+                | first_name : String
+                , last_name : String
+                , account : { account | name : String }
+            }
         , toMsg : Msg -> msg
     }
     -> Html msg

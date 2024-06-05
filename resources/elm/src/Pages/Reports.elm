@@ -114,4 +114,5 @@ view ctx model =
                 [ text "The reports page was blank in the original demo!"
                 ]
             ]
+        , overlays = []
         }
