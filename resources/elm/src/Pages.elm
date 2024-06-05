@@ -15,6 +15,7 @@ import Html exposing (Html)
 import Inertia.PageData exposing (PageData)
 import Json.Decode
 import Pages.Contacts
+import Pages.Contacts.Create
 import Pages.Dashboard
 import Pages.Error404
 import Pages.Error500
@@ -23,6 +24,7 @@ import Pages.Organizations
 import Pages.Organizations.Create
 import Pages.Reports
 import Pages.Users
+import Pages.Users.Create
 
 
 
@@ -34,6 +36,8 @@ type Model
     | Model_Dashboard Pages.Dashboard.Model
     | Model_Organizations Pages.Organizations.Model
     | Model_Organizations_Create Pages.Organizations.Create.Model
+    | Model_Contacts_Create Pages.Contacts.Create.Model
+    | Model_Users_Create Pages.Users.Create.Model
     | Model_Contacts Pages.Contacts.Model
     | Model_Users Pages.Users.Model
     | Model_Reports Pages.Reports.Model
@@ -97,6 +101,16 @@ init context pageData =
                 , toMsg = Msg_Contacts
                 }
 
+        "Contacts/Create" ->
+            initPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Contacts.Create.decoder
+                , init = Pages.Contacts.Create.init
+                , toModel = Model_Contacts_Create
+                , toMsg = Msg_Contacts_Create
+                }
+
         "Users/Index" ->
             initPage
                 { context = context
@@ -105,6 +119,16 @@ init context pageData =
                 , init = Pages.Users.init
                 , toModel = Model_Users
                 , toMsg = Msg_Users
+                }
+
+        "Users/Create" ->
+            initPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Users.Create.decoder
+                , init = Pages.Users.Create.init
+                , toModel = Model_Users_Create
+                , toMsg = Msg_Users_Create
                 }
 
         "Reports/Index" ->
@@ -188,6 +212,17 @@ onPropsChanged ctx pageData model =
                 , toMsg = Msg_Contacts
                 }
 
+        Model_Contacts_Create pageModel ->
+            onPropsChangedPage
+                { context = ctx
+                , pageData = pageData
+                , model = pageModel
+                , decoder = Pages.Contacts.Create.decoder
+                , onPropsChanged = Pages.Contacts.Create.onPropsChanged
+                , toModel = Model_Contacts_Create
+                , toMsg = Msg_Contacts_Create
+                }
+
         Model_Users pageModel ->
             onPropsChangedPage
                 { context = ctx
@@ -197,6 +232,17 @@ onPropsChanged ctx pageData model =
                 , onPropsChanged = Pages.Users.onPropsChanged
                 , toModel = Model_Users
                 , toMsg = Msg_Users
+                }
+
+        Model_Users_Create pageModel ->
+            onPropsChangedPage
+                { context = ctx
+                , pageData = pageData
+                , model = pageModel
+                , decoder = Pages.Users.Create.decoder
+                , onPropsChanged = Pages.Users.Create.onPropsChanged
+                , toModel = Model_Users_Create
+                , toMsg = Msg_Users_Create
                 }
 
         Model_Reports pageModel ->
@@ -226,6 +272,8 @@ type Msg
     | Msg_Dashboard Pages.Dashboard.Msg
     | Msg_Organizations Pages.Organizations.Msg
     | Msg_Organizations_Create Pages.Organizations.Create.Msg
+    | Msg_Contacts_Create Pages.Contacts.Create.Msg
+    | Msg_Users_Create Pages.Users.Create.Msg
     | Msg_Contacts Pages.Contacts.Msg
     | Msg_Users Pages.Users.Msg
     | Msg_Reports Pages.Reports.Msg
@@ -266,11 +314,23 @@ update ctx msg model =
                     Model_Contacts
                     (Effect.map Msg_Contacts)
 
+        ( Msg_Contacts_Create pageMsg, Model_Contacts_Create pageModel ) ->
+            Pages.Contacts.Create.update ctx pageMsg pageModel
+                |> Tuple.mapBoth
+                    Model_Contacts_Create
+                    (Effect.map Msg_Contacts_Create)
+
         ( Msg_Users pageMsg, Model_Users pageModel ) ->
             Pages.Users.update ctx pageMsg pageModel
                 |> Tuple.mapBoth
                     Model_Users
                     (Effect.map Msg_Users)
+
+        ( Msg_Users_Create pageMsg, Model_Users_Create pageModel ) ->
+            Pages.Users.Create.update ctx pageMsg pageModel
+                |> Tuple.mapBoth
+                    Model_Users_Create
+                    (Effect.map Msg_Users_Create)
 
         ( Msg_Reports pageMsg, Model_Reports pageModel ) ->
             Pages.Reports.update ctx pageMsg pageModel
@@ -319,9 +379,17 @@ subscriptions context model =
             Pages.Contacts.subscriptions context pageModel
                 |> Sub.map Msg_Contacts
 
+        Model_Contacts_Create pageModel ->
+            Pages.Contacts.Create.subscriptions context pageModel
+                |> Sub.map Msg_Contacts_Create
+
         Model_Users pageModel ->
             Pages.Users.subscriptions context pageModel
                 |> Sub.map Msg_Users
+
+        Model_Users_Create pageModel ->
+            Pages.Users.Create.subscriptions context pageModel
+                |> Sub.map Msg_Users_Create
 
         Model_Reports pageModel ->
             Pages.Reports.subscriptions context pageModel
@@ -363,9 +431,17 @@ view context model =
             Pages.Contacts.view context pageModel
                 |> Extra.Document.map Msg_Contacts
 
+        Model_Contacts_Create pageModel ->
+            Pages.Contacts.Create.view context pageModel
+                |> Extra.Document.map Msg_Contacts_Create
+
         Model_Users pageModel ->
             Pages.Users.view context pageModel
                 |> Extra.Document.map Msg_Users
+
+        Model_Users_Create pageModel ->
+            Pages.Users.Create.view context pageModel
+                |> Extra.Document.map Msg_Users_Create
 
         Model_Reports pageModel ->
             Pages.Reports.view context pageModel
