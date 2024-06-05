@@ -14,14 +14,16 @@ module Pages.Organizations.Create exposing
 
 -}
 
-import Components.CreateHeader
 import Browser exposing (Document)
+import Components.CreateHeader
 import Components.Form
 import Context exposing (Context)
 import Domain.Auth exposing (Auth)
+import Domain.CommonProps exposing (CommonProps)
 import Domain.Flash exposing (Flash)
 import Effect exposing (Effect)
 import Extra.Http
+import Extra.Json.Encode as E
 import Html exposing (..)
 import Html.Attributes as Attr exposing (attribute, class, href)
 import Html.Events
@@ -136,7 +138,7 @@ type Msg
     = Sidebar Layouts.Sidebar.Msg
     | ChangedInput Field String
     | SubmittedForm
-    | CreateApiResponded (Result Http.Error Props)
+    | CreateApiResponded (Result Http.Error (CommonProps Errors))
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
@@ -189,21 +191,21 @@ update ctx msg ({ errors } as model) =
                 body : Json.Encode.Value
                 body =
                     Json.Encode.object
-                        [ ( "name", toStringOrNull model.name )
-                        , ( "email", toStringOrNull model.email )
-                        , ( "phone", toStringOrNull model.phone )
-                        , ( "address", toStringOrNull model.address )
-                        , ( "city", toStringOrNull model.city )
-                        , ( "region", toStringOrNull model.region )
-                        , ( "country", toStringOrNull model.country )
-                        , ( "postal_code", toStringOrNull model.postalCode )
+                        [ ( "name", E.toStringOrNull model.name )
+                        , ( "email", E.toStringOrNull model.email )
+                        , ( "phone", E.toStringOrNull model.phone )
+                        , ( "address", E.toStringOrNull model.address )
+                        , ( "city", E.toStringOrNull model.city )
+                        , ( "region", E.toStringOrNull model.region )
+                        , ( "country", E.toStringOrNull model.country )
+                        , ( "postal_code", E.toStringOrNull model.postalCode )
                         ]
             in
             ( { model | isSubmittingForm = True }
             , Effect.post
                 { url = "/organizations"
                 , body = body
-                , decoder = decoder
+                , decoder = Domain.CommonProps.decoder errorsDecoder
                 , onResponse = CreateApiResponded
                 }
             )
@@ -234,15 +236,6 @@ update ctx msg ({ errors } as model) =
 showFormError : String -> Props -> Props
 showFormError reason props =
     { props | flash = { success = Nothing, error = Just reason } }
-
-
-toStringOrNull : String -> Json.Encode.Value
-toStringOrNull str =
-    if String.isEmpty (String.trim str) then
-        Json.Encode.null
-
-    else
-        Json.Encode.string str
 
 
 
@@ -347,8 +340,7 @@ viewCreateForm model =
                 , error = Nothing
                 , onInput = ChangedInput Country
                 , options =
-                    [ ( "", "" )
-                    , ( "CA", "Canada" )
+                    [ ( "CA", "Canada" )
                     , ( "US", "United States" )
                     ]
                 }
