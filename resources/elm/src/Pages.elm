@@ -21,6 +21,7 @@ import Pages.Error500
 import Pages.Login
 import Pages.Organizations
 import Pages.Reports
+import Pages.Users
 
 
 
@@ -32,6 +33,7 @@ type Model
     | Model_Dashboard Pages.Dashboard.Model
     | Model_Organizations Pages.Organizations.Model
     | Model_Contacts Pages.Contacts.Model
+    | Model_Users Pages.Users.Model
     | Model_Reports Pages.Reports.Model
     | Model_Error404 Pages.Error404.Model
     | Model_Error500 Pages.Error500.Model
@@ -81,6 +83,16 @@ init context pageData =
                 , init = Pages.Contacts.init
                 , toModel = Model_Contacts
                 , toMsg = Msg_Contacts
+                }
+
+        "Users/Index" ->
+            initPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Users.decoder
+                , init = Pages.Users.init
+                , toModel = Model_Users
+                , toMsg = Msg_Users
                 }
 
         "Reports/Index" ->
@@ -177,6 +189,23 @@ onPropsChanged ctx pageData model =
                             Model_Error500
                             (Effect.map Msg_Error500)
 
+        Model_Users pageModel ->
+            case Json.Decode.decodeValue Pages.Users.decoder pageData.props of
+                Ok props ->
+                    Pages.Users.onPropsChanged ctx props pageModel
+                        |> Tuple.mapBoth
+                            Model_Users
+                            (Effect.map Msg_Users)
+
+                Err jsonDecodeError ->
+                    Pages.Error500.init ctx
+                        { error = jsonDecodeError
+                        , page = pageData.component
+                        }
+                        |> Tuple.mapBoth
+                            Model_Error500
+                            (Effect.map Msg_Error500)
+
         Model_Reports pageModel ->
             case Json.Decode.decodeValue Pages.Reports.decoder pageData.props of
                 Ok props ->
@@ -210,6 +239,7 @@ type Msg
     | Msg_Dashboard Pages.Dashboard.Msg
     | Msg_Organizations Pages.Organizations.Msg
     | Msg_Contacts Pages.Contacts.Msg
+    | Msg_Users Pages.Users.Msg
     | Msg_Reports Pages.Reports.Msg
     | Msg_Error404 Pages.Error404.Msg
     | Msg_Error500 Pages.Error500.Msg
@@ -241,6 +271,12 @@ update ctx msg model =
                 |> Tuple.mapBoth
                     Model_Contacts
                     (Effect.map Msg_Contacts)
+
+        ( Msg_Users pageMsg, Model_Users pageModel ) ->
+            Pages.Users.update ctx pageMsg pageModel
+                |> Tuple.mapBoth
+                    Model_Users
+                    (Effect.map Msg_Users)
 
         ( Msg_Reports pageMsg, Model_Reports pageModel ) ->
             Pages.Reports.update ctx pageMsg pageModel
@@ -285,6 +321,10 @@ subscriptions context model =
             Pages.Contacts.subscriptions context pageModel
                 |> Sub.map Msg_Contacts
 
+        Model_Users pageModel ->
+            Pages.Users.subscriptions context pageModel
+                |> Sub.map Msg_Users
+
         Model_Reports pageModel ->
             Pages.Reports.subscriptions context pageModel
                 |> Sub.map Msg_Reports
@@ -320,6 +360,10 @@ view context model =
         Model_Contacts pageModel ->
             Pages.Contacts.view context pageModel
                 |> Extra.Document.map Msg_Contacts
+
+        Model_Users pageModel ->
+            Pages.Users.view context pageModel
+                |> Extra.Document.map Msg_Users
 
         Model_Reports pageModel ->
             Pages.Reports.view context pageModel
