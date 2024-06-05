@@ -1,11 +1,12 @@
 module Effect exposing
-    ( Effect(..)
+    ( Effect
     , none, batch
     , sendMsg, sendDelayedMsg
     , get, post, delete
     , reportJsonDecodeError
     , pushUrl
     , map
+    , switch
     )
 
 {-|
@@ -22,9 +23,11 @@ module Effect exposing
 @docs pushUrl
 
 @docs map
+@docs switch
 
 -}
 
+import Extra.Http
 import Http
 import Json.Decode
 import Json.Encode
@@ -33,7 +36,7 @@ import Json.Encode
 type Effect msg
     = None
     | Batch (List (Effect msg))
-    | InertiaHttp (HttpRequest msg)
+    | InertiaHttp (Extra.Http.Request msg)
     | SendMsg msg
     | SendDelayedMsg Float msg
     | ReportJsonDecodeError { page : String, error : Json.Decode.Error }
@@ -92,15 +95,6 @@ reportJsonDecodeError props =
 
 
 -- HTTP
-
-
-type alias HttpRequest msg =
-    { method : String
-    , url : String
-    , body : Http.Body
-    , decoder : Json.Decode.Decoder msg
-    , onFailure : Http.Error -> msg
-    }
 
 
 post :
@@ -207,7 +201,7 @@ map fn effect =
             SendDelayedMsg delay (fn msg)
 
         InertiaHttp req ->
-            InertiaHttp (mapHttpRequest fn req)
+            InertiaHttp (Extra.Http.map fn req)
 
         ReportJsonDecodeError msg ->
             ReportJsonDecodeError msg
@@ -216,11 +210,46 @@ map fn effect =
             PushUrl url
 
 
-mapHttpRequest : (a -> b) -> HttpRequest a -> HttpRequest b
-mapHttpRequest fn req =
-    { method = req.method
-    , url = req.url
-    , body = req.body
-    , decoder = Json.Decode.map fn req.decoder
-    , onFailure = fn << req.onFailure
+{-| An experimental way to support `Main.toCmd` functionality without
+exposing the variants for the Effect type.
+
+Keeps `Effect.none` vs `Effect.None` usage clear, and prevents
+exposing internals of module like `InertiaHttp` which is too clunky
+that it shouldn't be called.
+
+> Looked cute, might delete later!
+
+-}
+switch :
+    { onNone : value
+    , onBatch : List (Effect msg) -> value
+    , onInertiaHttp : Extra.Http.Request msg -> value
+    , onSendMsg : msg -> value
+    , onSendDelayedMsg : Float -> msg -> value
+    , onReportJsonDecodeError : { page : String, error : Json.Decode.Error } -> value
+    , onPushUrl : String -> value
     }
+    -> Effect msg
+    -> value
+switch handlers effect =
+    case effect of
+        None ->
+            handlers.onNone
+
+        Batch effects ->
+            handlers.onBatch effects
+
+        SendMsg msg ->
+            handlers.onSendMsg msg
+
+        SendDelayedMsg delay msg ->
+            handlers.onSendDelayedMsg delay msg
+
+        InertiaHttp req ->
+            handlers.onInertiaHttp req
+
+        ReportJsonDecodeError msg ->
+            handlers.onReportJsonDecodeError msg
+
+        PushUrl url ->
+            handlers.onPushUrl url

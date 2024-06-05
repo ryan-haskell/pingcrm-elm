@@ -1,6 +1,30 @@
-module Extra.Http exposing (toUserFriendlyMessage)
+module Extra.Http exposing
+    ( Request
+    , map
+    , toUserFriendlyMessage
+    )
 
 import Http
+import Json.Decode
+
+
+type alias Request msg =
+    { method : String
+    , url : String
+    , body : Http.Body
+    , decoder : Json.Decode.Decoder msg
+    , onFailure : Http.Error -> msg
+    }
+
+
+map : (a -> b) -> Request a -> Request b
+map fn req =
+    { method = req.method
+    , url = req.url
+    , body = req.body
+    , decoder = Json.Decode.map fn req.decoder
+    , onFailure = fn << req.onFailure
+    }
 
 
 toUserFriendlyMessage : Http.Error -> String

@@ -200,53 +200,52 @@ view model =
 -- PERFORMING EFFECTS
 
 
-toCmd :
-    Model
-    -> Effect Msg
-    -> Cmd Msg
+toCmd : Model -> Effect Msg -> Cmd Msg
 toCmd model effect =
-    case effect of
-        Effect.None ->
-            Cmd.none
-
-        Effect.Batch effects ->
-            Cmd.batch (List.map (toCmd model) effects)
-
-        Effect.SendMsg msg ->
-            Task.succeed msg
-                |> Task.perform identity
-
-        Effect.SendDelayedMsg delay msg ->
-            Process.sleep delay
-                |> Task.map (\_ -> msg)
-                |> Task.perform identity
-
-        Effect.InertiaHttp req ->
-            Http.request
-                { method = req.method
-                , url = req.url
-                , headers =
-                    [ Http.header "Accept" "text/html, application/xhtml+xml"
-                    , Http.header "X-Requested-With" "XMLHttpRequest"
-                    , Http.header "X-Inertia" "true"
-                    , Http.header "X-XSRF-TOKEN" model.xsrfToken
-                    ]
-                , body = req.body
-                , timeout = Nothing
-                , tracker = Nothing
-                , expect =
-                    Http.expectJson (toHttpMsg model req)
-                        (Inertia.PageData.decoder req.decoder)
-                }
-
-        Effect.ReportJsonDecodeError { page, error } ->
-            reportJsonDecodeError
-                { page = page
-                , error = Json.Decode.errorToString error
-                }
-
-        Effect.PushUrl url ->
-            Nav.pushUrl model.key url
+    effect
+        |> Effect.switch
+            { onNone =
+                Cmd.none
+            , onBatch =
+                \effects ->
+                    Cmd.batch (List.map (toCmd model) effects)
+            , onSendMsg =
+                \msg ->
+                    Task.succeed msg
+                        |> Task.perform identity
+            , onSendDelayedMsg =
+                \delay msg ->
+                    Process.sleep delay
+                        |> Task.map (\_ -> msg)
+                        |> Task.perform identity
+            , onInertiaHttp =
+                \req ->
+                    Http.request
+                        { method = req.method
+                        , url = req.url
+                        , headers =
+                            [ Http.header "Accept" "text/html, application/xhtml+xml"
+                            , Http.header "X-Requested-With" "XMLHttpRequest"
+                            , Http.header "X-Inertia" "true"
+                            , Http.header "X-XSRF-TOKEN" model.xsrfToken
+                            ]
+                        , body = req.body
+                        , timeout = Nothing
+                        , tracker = Nothing
+                        , expect =
+                            Http.expectJson (toHttpMsg model req)
+                                (Inertia.PageData.decoder req.decoder)
+                        }
+            , onReportJsonDecodeError =
+                \{ page, error } ->
+                    reportJsonDecodeError
+                        { page = page
+                        , error = Json.Decode.errorToString error
+                        }
+            , onPushUrl =
+                \url ->
+                    Nav.pushUrl model.key url
+            }
 
 
 toHttpMsg :
