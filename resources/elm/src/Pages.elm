@@ -122,106 +122,70 @@ onPropsChanged :
 onPropsChanged ctx pageData model =
     case model of
         Model_Login pageModel ->
-            case Json.Decode.decodeValue Pages.Login.decoder pageData.props of
-                Ok props ->
-                    Pages.Login.onPropsChanged ctx props pageModel
-                        |> Tuple.mapBoth
-                            Model_Login
-                            (Effect.map Msg_Login)
-
-                Err jsonDecodeError ->
-                    Pages.Error500.init ctx
-                        { error = jsonDecodeError
-                        , page = pageData.component
-                        }
-                        |> Tuple.mapBoth
-                            Model_Error500
-                            (Effect.map Msg_Error500)
+            onPropsChangedPage
+                { context = ctx
+                , pageData = pageData
+                , model = pageModel
+                , decoder = Pages.Login.decoder
+                , onPropsChanged = Pages.Login.onPropsChanged
+                , toModel = Model_Login
+                , toMsg = Msg_Login
+                }
 
         Model_Dashboard pageModel ->
-            case Json.Decode.decodeValue Pages.Dashboard.decoder pageData.props of
-                Ok props ->
-                    Pages.Dashboard.onPropsChanged ctx props pageModel
-                        |> Tuple.mapBoth
-                            Model_Dashboard
-                            (Effect.map Msg_Dashboard)
-
-                Err jsonDecodeError ->
-                    Pages.Error500.init ctx
-                        { error = jsonDecodeError
-                        , page = pageData.component
-                        }
-                        |> Tuple.mapBoth
-                            Model_Error500
-                            (Effect.map Msg_Error500)
+            onPropsChangedPage
+                { context = ctx
+                , pageData = pageData
+                , model = pageModel
+                , decoder = Pages.Dashboard.decoder
+                , onPropsChanged = Pages.Dashboard.onPropsChanged
+                , toModel = Model_Dashboard
+                , toMsg = Msg_Dashboard
+                }
 
         Model_Organizations pageModel ->
-            case Json.Decode.decodeValue Pages.Organizations.decoder pageData.props of
-                Ok props ->
-                    Pages.Organizations.onPropsChanged ctx props pageModel
-                        |> Tuple.mapBoth
-                            Model_Organizations
-                            (Effect.map Msg_Organizations)
-
-                Err jsonDecodeError ->
-                    Pages.Error500.init ctx
-                        { error = jsonDecodeError
-                        , page = pageData.component
-                        }
-                        |> Tuple.mapBoth
-                            Model_Error500
-                            (Effect.map Msg_Error500)
+            onPropsChangedPage
+                { context = ctx
+                , pageData = pageData
+                , model = pageModel
+                , decoder = Pages.Organizations.decoder
+                , onPropsChanged = Pages.Organizations.onPropsChanged
+                , toModel = Model_Organizations
+                , toMsg = Msg_Organizations
+                }
 
         Model_Contacts pageModel ->
-            case Json.Decode.decodeValue Pages.Contacts.decoder pageData.props of
-                Ok props ->
-                    Pages.Contacts.onPropsChanged ctx props pageModel
-                        |> Tuple.mapBoth
-                            Model_Contacts
-                            (Effect.map Msg_Contacts)
-
-                Err jsonDecodeError ->
-                    Pages.Error500.init ctx
-                        { error = jsonDecodeError
-                        , page = pageData.component
-                        }
-                        |> Tuple.mapBoth
-                            Model_Error500
-                            (Effect.map Msg_Error500)
+            onPropsChangedPage
+                { context = ctx
+                , pageData = pageData
+                , model = pageModel
+                , decoder = Pages.Contacts.decoder
+                , onPropsChanged = Pages.Contacts.onPropsChanged
+                , toModel = Model_Contacts
+                , toMsg = Msg_Contacts
+                }
 
         Model_Users pageModel ->
-            case Json.Decode.decodeValue Pages.Users.decoder pageData.props of
-                Ok props ->
-                    Pages.Users.onPropsChanged ctx props pageModel
-                        |> Tuple.mapBoth
-                            Model_Users
-                            (Effect.map Msg_Users)
-
-                Err jsonDecodeError ->
-                    Pages.Error500.init ctx
-                        { error = jsonDecodeError
-                        , page = pageData.component
-                        }
-                        |> Tuple.mapBoth
-                            Model_Error500
-                            (Effect.map Msg_Error500)
+            onPropsChangedPage
+                { context = ctx
+                , pageData = pageData
+                , model = pageModel
+                , decoder = Pages.Users.decoder
+                , onPropsChanged = Pages.Users.onPropsChanged
+                , toModel = Model_Users
+                , toMsg = Msg_Users
+                }
 
         Model_Reports pageModel ->
-            case Json.Decode.decodeValue Pages.Reports.decoder pageData.props of
-                Ok props ->
-                    Pages.Reports.onPropsChanged ctx props pageModel
-                        |> Tuple.mapBoth
-                            Model_Reports
-                            (Effect.map Msg_Reports)
-
-                Err jsonDecodeError ->
-                    Pages.Error500.init ctx
-                        { error = jsonDecodeError
-                        , page = pageData.component
-                        }
-                        |> Tuple.mapBoth
-                            Model_Error500
-                            (Effect.map Msg_Error500)
+            onPropsChangedPage
+                { context = ctx
+                , pageData = pageData
+                , model = pageModel
+                , decoder = Pages.Reports.decoder
+                , onPropsChanged = Pages.Reports.onPropsChanged
+                , toModel = Model_Reports
+                , toMsg = Msg_Reports
+                }
 
         Model_Error404 pageModel ->
             ( model, Effect.none )
@@ -403,6 +367,32 @@ initPage options =
             Pages.Error500.init options.context
                 { error = jsonDecodeError
                 , page = options.pageData.component
+                }
+                |> Tuple.mapBoth
+                    Model_Error500
+                    (Effect.map Msg_Error500)
+
+
+onPropsChangedPage :
+    { context : Context
+    , pageData : PageData Json.Decode.Value
+    , model : model
+    , decoder : Json.Decode.Decoder props
+    , onPropsChanged : Context -> props -> model -> ( model, Effect msg )
+    , toModel : model -> Model
+    , toMsg : msg -> Msg
+    }
+    -> ( Model, Effect Msg )
+onPropsChangedPage args =
+    case Json.Decode.decodeValue args.decoder args.pageData.props of
+        Ok props ->
+            args.onPropsChanged args.context props args.model
+                |> Tuple.mapBoth args.toModel (Effect.map args.toMsg)
+
+        Err jsonDecodeError ->
+            Pages.Error500.init args.context
+                { error = jsonDecodeError
+                , page = args.pageData.component
                 }
                 |> Tuple.mapBoth
                     Model_Error500
