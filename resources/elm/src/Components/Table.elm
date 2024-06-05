@@ -232,9 +232,9 @@ viewTableData props =
     if List.isEmpty props.rows then
         p [ class "py-3" ]
             [ text "No results found for this search. "
-            , a
+            , button
                 [ class "underline hover:text-gray-700 focus:text-indigo-500"
-                , href (Url.Builder.absolute [ props.baseUrl ] [])
+                , Html.Events.onClick (props.toMsg (ClickedReset props.baseUrl))
                 ]
                 [ text "Reset filters" ]
             ]
