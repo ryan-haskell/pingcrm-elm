@@ -384,10 +384,11 @@ viewSidebarAndMainContent :
         | content : List (Html msg)
         , context : { context | url : Url }
         , toMsg : Msg -> msg
+        , flash : { success : Maybe String, error : Maybe String }
     }
     -> Model
     -> Html msg
-viewSidebarAndMainContent { content, context, toMsg } (Model model) =
+viewSidebarAndMainContent { content, context, toMsg, flash } (Model model) =
     div [ class "md:flex md:grow md:overflow-hidden" ]
         [ div [ class "hidden shrink-0 p-12 w-56 bg-indigo-800 overflow-y-auto md:block" ]
             (viewSidebarLinks context.url)
@@ -397,14 +398,30 @@ viewSidebarAndMainContent { content, context, toMsg } (Model model) =
             ]
             (case model.problem of
                 Just problem ->
-                    Components.Flash.viewErrorMessage
+                    Components.Flash.viewDismissableError
                         { message = problem.message
                         , onDismiss = toMsg DismissedProblem
                         }
                         :: content
 
                 Nothing ->
-                    content
+                    case flash.error of
+                        Just message ->
+                            Components.Flash.viewError
+                                { message = message
+                                }
+                                :: content
+
+                        Nothing ->
+                            case flash.success of
+                                Just message ->
+                                    Components.Flash.viewSuccess
+                                        { message = message
+                                        }
+                                        :: content
+
+                                Nothing ->
+                                    content
             )
         ]
 
