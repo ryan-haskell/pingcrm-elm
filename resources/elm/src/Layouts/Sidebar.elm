@@ -1,7 +1,7 @@
 module Layouts.Sidebar exposing
     ( Model, Msg
     , init, update, view
-    , dismissDropdown, showProblem
+    , subscriptions
     )
 
 {-|
@@ -9,11 +9,10 @@ module Layouts.Sidebar exposing
 @docs Model, Msg
 @docs init, update, view
 
-@docs dismissDropdown, showProblem
-
 -}
 
 import Browser exposing (Document)
+import Browser.Events
 import Components.Dropdown
 import Components.Flash
 import Components.Icon
@@ -27,7 +26,6 @@ import Html.Events
 import Http
 import Json.Decode
 import Json.Encode
-import Layouts.Sidebar.Msg exposing (..)
 import Url exposing (Url)
 
 
@@ -69,10 +67,21 @@ init =
 -- UPDATE
 
 
-{-| This prevents circular dependencies caused by Effect.sendSidebarMsg
--}
-type alias Msg =
-    Layouts.Sidebar.Msg.Msg
+type Msg
+    = ClickedHamburgerMenu
+    | ClickedUserDropdown
+    | ClickedDismissDropdown
+    | ClickedLogout
+    | LogoutResponded (Result Http.Error ())
+    | ShowProblem
+        { durationInMs : Maybe Float
+        , problem :
+            { message : String
+            , details : Maybe String
+            }
+        }
+    | DismissedProblem
+    | PressedEsc
 
 
 update :
@@ -110,6 +119,12 @@ update ({ msg, toModel, toMsg } as args) =
                 , Effect.none
                 )
 
+        PressedEsc ->
+            return
+                ( Model { model | dropdown = Closed }
+                , Effect.none
+                )
+
         ClickedLogout ->
             return
                 ( Model { model | dropdown = Closed }
@@ -128,11 +143,15 @@ update ({ msg, toModel, toMsg } as args) =
 
         LogoutResponded (Err httpError) ->
             return
-                ( Model model
-                , Effect.showProblem
-                    { message = Extra.Http.toUserFriendlyMessage httpError
-                    , details = Just "Unable to log out the current user."
+                ( Model
+                    { model
+                        | problem =
+                            Just
+                                { message = Extra.Http.toUserFriendlyMessage httpError
+                                , details = Just "Unable to log out the current user."
+                                }
                     }
+                , Effect.none
                 )
 
         ShowProblem { durationInMs, problem } ->
@@ -214,6 +233,26 @@ view props =
                     }
         ]
     }
+
+
+subscriptions : { model : Model, toMsg : Msg -> msg } -> Sub msg
+subscriptions props =
+    Sub.batch
+        [ Browser.Events.onKeyDown (onEscDecoder |> Json.Decode.map props.toMsg)
+        ]
+
+
+onEscDecoder : Json.Decode.Decoder Msg
+onEscDecoder =
+    Json.Decode.field "key" Json.Decode.string
+        |> Json.Decode.andThen
+            (\key ->
+                if key == "Escape" then
+                    Json.Decode.succeed PressedEsc
+
+                else
+                    Json.Decode.fail "Other key pressed"
+            )
 
 
 viewMobileNavMenu : { props | context : { context | url : Url } } -> Html msg

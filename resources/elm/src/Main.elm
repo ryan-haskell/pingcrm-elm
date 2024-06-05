@@ -42,7 +42,6 @@ type alias Model =
     , pageData : PageData Json.Decode.Value
     , xsrfToken : String
     , page : Pages.Model
-    , sidebar : Layouts.Sidebar.Model
     , isMobile : Bool
     }
 
@@ -50,10 +49,6 @@ type alias Model =
 init : Flags -> Url -> Key -> ( Model, Cmd Msg )
 init flags url key =
     let
-        sidebar : Layouts.Sidebar.Model
-        sidebar =
-            Layouts.Sidebar.init
-
         isMobile : Bool
         isMobile =
             flags.window.width <= 740
@@ -61,7 +56,6 @@ init flags url key =
         context : Context
         context =
             { url = url
-            , sidebar = sidebar
             , isMobile = isMobile
             }
 
@@ -75,7 +69,6 @@ init flags url key =
             , pageData = flags.pageData
             , xsrfToken = flags.xsrfToken
             , page = page
-            , sidebar = sidebar
             , isMobile = isMobile
             }
     in
@@ -93,9 +86,6 @@ type Msg
     | UrlChanged Url
     | UrlRequested UrlRequest
     | InertiaPageDataResponded Url (Result Http.Error (PageData Json.Decode.Value))
-    | Sidebar Layouts.Sidebar.Msg
-    | ShowProblem { message : String, details : Maybe String }
-    | PressedEsc
     | Resize Int Int
     | XsrfTokenRefreshed String
 
@@ -114,10 +104,7 @@ update msg model =
             )
 
         UrlChanged url ->
-            ( { model
-                | url = url
-                , sidebar = Layouts.Sidebar.dismissDropdown model.sidebar
-              }
+            ( { model | url = url }
             , toInertiaNavigateCmd model url
             )
 
@@ -126,7 +113,6 @@ update msg model =
                 context : Context
                 context =
                     { url = url
-                    , sidebar = model.sidebar
                     , isMobile = model.isMobile
                     }
 
@@ -146,10 +132,10 @@ update msg model =
 
         InertiaPageDataResponded url (Err httpError) ->
             ( model
-            , showProblem
-                { message = Extra.Http.toUserFriendlyMessage httpError
-                , details = Just ("Unable to navigate to " ++ url.path)
-                }
+            , Cmd.none |> Debug.log "TODO: Show problem to user"
+              --     { message = Extra.Http.toUserFriendlyMessage httpError
+              --     , details = Just ("Unable to navigate to " ++ url.path)
+              --     }
             )
 
         Page pageMsg ->
@@ -157,7 +143,6 @@ update msg model =
                 context : Context
                 context =
                     { url = model.url
-                    , sidebar = model.sidebar
                     , isMobile = model.isMobile
                     }
             in
@@ -165,25 +150,6 @@ update msg model =
                 |> Tuple.mapBoth
                     (\page -> { model | page = page })
                     (Effect.map Page >> toCmd model)
-
-        Sidebar sidebarMsg ->
-            Layouts.Sidebar.update
-                { msg = sidebarMsg
-                , model = model.sidebar
-                , toModel = \sidebar -> { model | sidebar = sidebar }
-                , toMsg = Sidebar
-                }
-                |> Tuple.mapSecond (toCmd model)
-
-        ShowProblem problem ->
-            ( { model | sidebar = Layouts.Sidebar.showProblem problem model.sidebar }
-            , Cmd.none
-            )
-
-        PressedEsc ->
-            ( { model | sidebar = Layouts.Sidebar.dismissDropdown model.sidebar }
-            , Cmd.none
-            )
 
         XsrfTokenRefreshed token ->
             ( { model | xsrfToken = token }
@@ -202,30 +168,15 @@ subscriptions model =
         context : Context
         context =
             { url = model.url
-            , sidebar = model.sidebar
             , isMobile = model.isMobile
             }
     in
     Sub.batch
         [ Pages.subscriptions context model.page
             |> Sub.map Page
-        , Browser.Events.onKeyDown onEscDecoder
         , Browser.Events.onResize Resize
         , onXsrfTokenRefreshed XsrfTokenRefreshed
         ]
-
-
-onEscDecoder : Json.Decode.Decoder Msg
-onEscDecoder =
-    Json.Decode.field "key" Json.Decode.string
-        |> Json.Decode.andThen
-            (\key ->
-                if key == "Escape" then
-                    Json.Decode.succeed PressedEsc
-
-                else
-                    Json.Decode.fail "Other key pressed"
-            )
 
 
 
@@ -238,7 +189,6 @@ view model =
         context : Context
         context =
             { url = model.url
-            , sidebar = model.sidebar
             , isMobile = model.isMobile
             }
     in
@@ -270,13 +220,6 @@ toCmd model effect =
             Process.sleep delay
                 |> Task.map (\_ -> msg)
                 |> Task.perform identity
-
-        Effect.SendSidebarMsg sidebarMsg ->
-            Task.succeed (Sidebar sidebarMsg)
-                |> Task.perform identity
-
-        Effect.ShowProblem problem ->
-            showProblem problem
 
         Effect.InertiaHttp req ->
             Http.request
@@ -363,15 +306,10 @@ toInertiaNavigateCmd model url =
 
 
 -- ERRORS
-
-
-showProblem : { message : String, details : Maybe String } -> Cmd Msg
-showProblem problem =
-    Task.succeed (ShowProblem problem)
-        |> Task.perform identity
-
-
-
+-- showProblem : { message : String, details : Maybe String } -> Cmd Msg
+-- showProblem problem =
+--     Task.succeed (ShowProblem problem)
+--         |> Task.perform identity
 -- PORTS
 
 

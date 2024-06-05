@@ -2,8 +2,6 @@ module Effect exposing
     ( Effect(..)
     , none, batch
     , sendMsg, sendDelayedMsg
-    , sendSidebarMsg
-    , showProblem
     , get, post, delete
     , reportJsonDecodeError
     , pushUrl
@@ -16,9 +14,6 @@ module Effect exposing
 @docs none, batch
 
 @docs sendMsg, sendDelayedMsg
-
-@docs sendSidebarMsg
-@docs showProblem
 
 @docs get, post, delete
 
@@ -33,7 +28,6 @@ module Effect exposing
 import Http
 import Json.Decode
 import Json.Encode
-import Layouts.Sidebar.Msg
 
 
 type Effect msg
@@ -42,8 +36,6 @@ type Effect msg
     | InertiaHttp (HttpRequest msg)
     | SendMsg msg
     | SendDelayedMsg Float msg
-    | SendSidebarMsg Layouts.Sidebar.Msg.Msg
-    | ShowProblem { message : String, details : Maybe String }
     | ReportJsonDecodeError { page : String, error : Json.Decode.Error }
     | PushUrl String
 
@@ -96,24 +88,6 @@ reportJsonDecodeError :
     -> Effect msg
 reportJsonDecodeError props =
     ReportJsonDecodeError props
-
-
-
--- SIDEBAR
-
-
-sendSidebarMsg : Layouts.Sidebar.Msg.Msg -> Effect msg
-sendSidebarMsg sidebarMsg =
-    SendSidebarMsg sidebarMsg
-
-
-
--- COMMUNICATING ERRORS
-
-
-showProblem : { message : String, details : Maybe String } -> Effect msg
-showProblem problem =
-    ShowProblem problem
 
 
 
@@ -231,12 +205,6 @@ map fn effect =
 
         SendDelayedMsg delay msg ->
             SendDelayedMsg delay (fn msg)
-
-        ShowProblem problem ->
-            ShowProblem problem
-
-        SendSidebarMsg msg ->
-            SendSidebarMsg msg
 
         InertiaHttp req ->
             InertiaHttp (mapHttpRequest fn req)

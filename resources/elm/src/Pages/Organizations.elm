@@ -61,12 +61,14 @@ type alias Model =
     { props : Props
     , table : Components.Table.Model
     , mostRecentSearch : Maybe String
+    , sidebar : Layouts.Sidebar.Model
     }
 
 
 init : Context -> Props -> ( Model, Effect Msg )
 init ctx props =
     ( { props = props
+      , sidebar = Layouts.Sidebar.init
       , table = Components.Table.init
       , mostRecentSearch = Nothing
       }
@@ -95,9 +97,12 @@ update : Context -> Msg -> Model -> ( Model, Effect Msg )
 update ctx msg model =
     case msg of
         Sidebar sidebarMsg ->
-            ( model
-            , Effect.sendSidebarMsg sidebarMsg
-            )
+            Layouts.Sidebar.update
+                { msg = sidebarMsg
+                , model = model.sidebar
+                , toModel = \sidebar -> { model | sidebar = sidebar }
+                , toMsg = Sidebar
+                }
 
         Table tableMsg ->
             Components.Table.update
@@ -127,7 +132,9 @@ toSearchUrl value model =
 
 subscriptions : Context -> Model -> Sub Msg
 subscriptions ctx model =
-    Sub.none
+    Sub.batch
+        [ Layouts.Sidebar.subscriptions { model = model.sidebar, toMsg = Sidebar }
+        ]
 
 
 
@@ -137,7 +144,7 @@ subscriptions ctx model =
 view : Context -> Model -> Document Msg
 view ctx model =
     Layouts.Sidebar.view
-        { model = ctx.sidebar
+        { model = model.sidebar
         , flash = model.props.flash
         , toMsg = Sidebar
         , context = ctx
