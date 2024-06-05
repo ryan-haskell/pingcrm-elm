@@ -156,7 +156,7 @@ subscriptions ctx model =
 
 view : Context -> Model -> Document Msg
 view ctx model =
-    { title = "Login"
+    { title = "Login - Ping CRM"
     , body =
         [ div [ class "flex items-center justify-center p-6 min-h-screen bg-indigo-800" ]
             [ div [ class "w-full max-w-md" ]

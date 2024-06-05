@@ -230,7 +230,7 @@ view props =
         (Model model) =
             props.model
     in
-    { title = props.title
+    { title = props.title ++ " - Ping CRM"
     , body =
         [ div [ class "md:flex md:flex-col" ]
             [ div [ class "md:flex md:flex-col md:h-screen" ]
