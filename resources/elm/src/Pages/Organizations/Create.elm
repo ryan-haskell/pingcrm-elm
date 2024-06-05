@@ -14,7 +14,9 @@ module Pages.Organizations.Create exposing
 
 -}
 
+import Components.CreateHeader
 import Browser exposing (Document)
+import Components.Form
 import Context exposing (Context)
 import Domain.Auth exposing (Auth)
 import Domain.Flash exposing (Flash)
@@ -268,20 +270,14 @@ view ctx model =
         , title = "Create Organization"
         , user = model.props.auth.user
         , content =
-            [ viewHeader
+            [ Components.CreateHeader.view
+                { label = "Organizations"
+                , url = "/organizations"
+                }
             , viewCreateForm model
             ]
         , overlays = []
         }
-
-
-viewHeader : Html Msg
-viewHeader =
-    h1 [ class "mb-8 text-3xl font-bold" ]
-        [ a [ class "text-indigo-400 hover:text-indigo-600", href "/organizations" ] [ text "Organizations" ]
-        , span [ class "text-indigo-400 font-medium" ] [ text " / " ]
-        , text "Create"
-        ]
 
 
 
@@ -290,175 +286,79 @@ viewHeader =
 
 viewCreateForm : Model -> Html Msg
 viewCreateForm model =
-    div [ class "max-w-3xl bg-white rounded-md shadow overflow-hidden" ]
-        [ form [ Html.Events.onSubmit SubmittedForm ]
-            [ div [ class "flex flex-wrap -mb-8 -mr-6 p-8" ]
-                [ viewTextInputField
-                    { isDisabled = model.isSubmittingForm
-                    , id = "name"
-                    , label = "Name"
-                    , value = model.name
-                    , error = model.errors.name
-                    , field = Name
-                    }
-                , viewTextInputField
-                    { isDisabled = model.isSubmittingForm
-                    , id = "email"
-                    , label = "Email"
-                    , value = model.email
-                    , error = model.errors.email
-                    , field = Email
-                    }
-                , viewTextInputField
-                    { isDisabled = model.isSubmittingForm
-                    , id = "phone"
-                    , label = "Phone"
-                    , value = model.phone
-                    , error = Nothing
-                    , field = Phone
-                    }
-                , viewTextInputField
-                    { isDisabled = model.isSubmittingForm
-                    , id = "address"
-                    , label = "Address"
-                    , value = model.address
-                    , error = Nothing
-                    , field = Address
-                    }
-                , viewTextInputField
-                    { isDisabled = model.isSubmittingForm
-                    , id = "city"
-                    , label = "City"
-                    , value = model.city
-                    , error = Nothing
-                    , field = City
-                    }
-                , viewTextInputField
-                    { isDisabled = model.isSubmittingForm
-                    , id = "region"
-                    , label = "Province/State"
-                    , value = model.region
-                    , error = Nothing
-                    , field = Region
-                    }
-                , viewSelectField
-                    { isDisabled = model.isSubmittingForm
-                    , id = "country"
-                    , label = "Country"
-                    , value = model.country
-                    , error = Nothing
-                    , field = Country
-                    , options =
-                        [ ( "", "" )
-                        , ( "CA", "Canada" )
-                        , ( "US", "United States" )
-                        ]
-                    }
-                , viewTextInputField
-                    { isDisabled = model.isSubmittingForm
-                    , id = "postalCode"
-                    , label = "Postal code"
-                    , value = model.postalCode
-                    , error = Nothing
-                    , field = PostalCode
-                    }
-                ]
-            , div [ class "flex items-center justify-end px-8 py-4 bg-gray-50 border-t border-gray-100" ]
-                [ viewSubmitButton
-                    { label = "Create Organization"
-                    , isDisabled = model.isSubmittingForm
-                    }
-                ]
+    Components.Form.create
+        { onSubmit = SubmittedForm
+        , button = "Create Organization"
+        , isSubmittingForm = model.isSubmittingForm
+        , inputs =
+            [ Components.Form.text
+                { isDisabled = model.isSubmittingForm
+                , id = "name"
+                , label = "Name"
+                , value = model.name
+                , error = model.errors.name
+                , onInput = ChangedInput Name
+                }
+            , Components.Form.text
+                { isDisabled = model.isSubmittingForm
+                , id = "email"
+                , label = "Email"
+                , value = model.email
+                , error = model.errors.email
+                , onInput = ChangedInput Email
+                }
+            , Components.Form.text
+                { isDisabled = model.isSubmittingForm
+                , id = "phone"
+                , label = "Phone"
+                , value = model.phone
+                , error = Nothing
+                , onInput = ChangedInput Phone
+                }
+            , Components.Form.text
+                { isDisabled = model.isSubmittingForm
+                , id = "address"
+                , label = "Address"
+                , value = model.address
+                , error = Nothing
+                , onInput = ChangedInput Address
+                }
+            , Components.Form.text
+                { isDisabled = model.isSubmittingForm
+                , id = "city"
+                , label = "City"
+                , value = model.city
+                , error = Nothing
+                , onInput = ChangedInput City
+                }
+            , Components.Form.text
+                { isDisabled = model.isSubmittingForm
+                , id = "region"
+                , label = "Province/State"
+                , value = model.region
+                , error = Nothing
+                , onInput = ChangedInput Region
+                }
+            , Components.Form.select
+                { isDisabled = model.isSubmittingForm
+                , id = "country"
+                , label = "Country"
+                , value = model.country
+                , error = Nothing
+                , onInput = ChangedInput Country
+                , options =
+                    [ ( "", "" )
+                    , ( "CA", "Canada" )
+                    , ( "US", "United States" )
+                    ]
+                }
+            , Components.Form.text
+                { isDisabled = model.isSubmittingForm
+                , id = "postalCode"
+                , label = "Postal code"
+                , value = model.postalCode
+                , error = Nothing
+                , onInput = ChangedInput PostalCode
+                }
             ]
-        ]
-
-
-viewTextInputField :
-    { value : String
-    , error : Maybe String
-    , id : String
-    , field : Field
-    , label : String
-    , isDisabled : Bool
-    }
-    -> Html Msg
-viewTextInputField props =
-    div [ class "pb-8 pr-6 w-full lg:w-1/2" ]
-        [ viewLabel props
-        , input
-            [ Attr.id props.id
-            , class "form-input"
-            , Attr.classList [ ( "error", props.error /= Nothing ) ]
-            , Attr.type_ "text"
-            , Attr.value props.value
-            , Html.Events.onInput (ChangedInput props.field)
-            , Attr.disabled props.isDisabled
-            ]
-            []
-        , viewError props.error
-        ]
-
-
-viewSelectField :
-    { value : String
-    , error : Maybe String
-    , id : String
-    , field : Field
-    , label : String
-    , options : List ( String, String )
-    , isDisabled : Bool
-    }
-    -> Html Msg
-viewSelectField props =
-    let
-        viewOption : ( String, String ) -> Html Msg
-        viewOption ( value_, label_ ) =
-            option
-                [ Attr.value value_
-                , Attr.selected (value_ == props.value)
-                ]
-                [ text label_ ]
-    in
-    div [ class "pb-8 pr-6 w-full lg:w-1/2" ]
-        [ viewLabel props
-        , select
-            [ Attr.id props.id
-            , class "form-select"
-            , Attr.classList [ ( "error", props.error /= Nothing ) ]
-            , Html.Events.onInput (ChangedInput props.field)
-            , Attr.disabled props.isDisabled
-            ]
-            (List.map viewOption props.options)
-        , viewError props.error
-        ]
-
-
-viewLabel : { props | id : String, label : String } -> Html Msg
-viewLabel props =
-    label [ class "form-label", Attr.for props.id ] [ text (props.label ++ ":") ]
-
-
-viewError : Maybe String -> Html Msg
-viewError maybeError =
-    case maybeError of
-        Just error ->
-            div [ class "form-error" ] [ text error ]
-
-        Nothing ->
-            text ""
-
-
-viewSubmitButton : { label : String, isDisabled : Bool } -> Html Msg
-viewSubmitButton props =
-    button
-        [ class "flex items-center btn-indigo"
-        , Attr.type_ "submit"
-        , Attr.disabled props.isDisabled
-        ]
-        [ if props.isDisabled then
-            div [ class "btn-spinner mr-2" ] []
-
-          else
-            text ""
-        , text props.label
-        ]
+        }
