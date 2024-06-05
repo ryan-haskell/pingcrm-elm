@@ -1,6 +1,7 @@
 module Components.Form exposing
     ( create
-    , text, select
+    , text, password
+    , select
     , button
     )
 
@@ -8,7 +9,8 @@ module Components.Form exposing
 
 @docs create
 
-@docs text, select
+@docs text, password
+@docs select
 @docs button
 
 -}
@@ -53,13 +55,41 @@ text :
     }
     -> Html msg
 text props =
+    input "text" props
+
+
+password :
+    { value : String
+    , error : Maybe String
+    , id : String
+    , onInput : String -> msg
+    , label : String
+    , isDisabled : Bool
+    }
+    -> Html msg
+password props =
+    input "password" props
+
+
+input :
+    String
+    ->
+        { value : String
+        , error : Maybe String
+        , id : String
+        , onInput : String -> msg
+        , label : String
+        , isDisabled : Bool
+        }
+    -> Html msg
+input inputType props =
     div [ class "pb-8 pr-6 w-full lg:w-1/2" ]
         [ viewLabel props
         , Html.input
             [ Attr.id props.id
             , class "form-input"
+            , Attr.type_ inputType
             , Attr.classList [ ( "error", props.error /= Nothing ) ]
-            , Attr.type_ "text"
             , Attr.value props.value
             , Html.Events.onInput props.onInput
             , Attr.disabled props.isDisabled
