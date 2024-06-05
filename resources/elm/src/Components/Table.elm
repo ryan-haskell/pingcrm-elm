@@ -398,7 +398,7 @@ viewTableFooter props =
             [ div [ class "flex flex-wrap -mb-1" ]
                 (List.concat
                     [ [ viewPreviousLink ]
-                    , List.range 1 (min 10 props.lastPage) |> List.map viewPageNumberLink
+                    , List.range 1 props.lastPage |> List.map viewPageNumberLink
                     , [ viewNextLink ]
                     ]
                 )
