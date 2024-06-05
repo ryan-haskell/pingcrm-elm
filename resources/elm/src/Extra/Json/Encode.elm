@@ -1,4 +1,8 @@
-module Extra.Json.Encode exposing (toIntOrNull, toStringOrNull)
+module Extra.Json.Encode exposing
+    ( toIntOrNull
+    , toStringOrNull
+    , toYesOrNoBool
+    )
 
 import Json.Encode
 
@@ -20,3 +24,15 @@ toIntOrNull str =
 
         Nothing ->
             Json.Encode.null
+
+
+toYesOrNoBool : String -> Json.Encode.Value
+toYesOrNoBool str =
+    if str == "yes" then
+        Json.Encode.bool True
+
+    else if str == "no" then
+        Json.Encode.bool False
+
+    else
+        Json.Encode.null
