@@ -110,8 +110,13 @@ view ctx model =
         , user = model.props.auth.user
         , content =
             [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Reports" ]
+            , p [ class "mb-4 leading-normal" ]
+                [ text "The \"Reports\" feature is under legal investigation at this time. "
+                ]
+            , p [ class "mb-4 leading-normal" ]
+                [ text "Our legal team would like to notify customers that their report data was not sold to fund our separate venture, \"Hamster Yacht Incorporated\". These allegations are unverified and baseless." ]
             , p [ class "mb-8 leading-normal" ]
-                [ text "The reports page was blank in the original demo!"
+                [ text "However, it is true that the hamsters are been trained to drive the fleet of mini-yachts. Thank you."
                 ]
             ]
         , overlays = []
