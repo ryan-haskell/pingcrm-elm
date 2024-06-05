@@ -89,7 +89,6 @@ onPropsChanged ctx props model =
 type Msg
     = Sidebar Layouts.Sidebar.Msg
     | Table Components.Table.Msg
-    | ChangedFilter String
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
@@ -109,13 +108,7 @@ update ctx msg model =
                 , model = model.table
                 , toModel = \table -> { model | table = table }
                 , toMsg = Table
-                , onFilterChanged = ChangedFilter
                 }
-
-        ChangedFilter newUrl ->
-            ( model
-            , Effect.pushUrl newUrl
-            )
 
 
 subscriptions : Context -> Model -> Sub Msg

@@ -64,7 +64,6 @@ update :
     , model : Model
     , toModel : Model -> model
     , toMsg : Msg -> msg
-    , onFilterChanged : String -> msg
     }
     -> ( model, Effect msg )
 update ({ msg, toModel, toMsg } as args) =
@@ -79,8 +78,7 @@ update ({ msg, toModel, toMsg } as args) =
         returnFilterChanged : String -> Model -> ( model, Effect msg )
         returnFilterChanged baseUrl newModel =
             ( toModel newModel
-            , args.onFilterChanged (toFilterUrl baseUrl newModel)
-                |> Effect.sendMsg
+            , Effect.pushUrl (toFilterUrl baseUrl newModel)
             )
     in
     case msg of
