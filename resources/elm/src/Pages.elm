@@ -20,6 +20,7 @@ import Pages.Error404
 import Pages.Error500
 import Pages.Login
 import Pages.Organizations
+import Pages.Organizations.Create
 import Pages.Reports
 import Pages.Users
 
@@ -32,6 +33,7 @@ type Model
     = Model_Login Pages.Login.Model
     | Model_Dashboard Pages.Dashboard.Model
     | Model_Organizations Pages.Organizations.Model
+    | Model_Organizations_Create Pages.Organizations.Create.Model
     | Model_Contacts Pages.Contacts.Model
     | Model_Users Pages.Users.Model
     | Model_Reports Pages.Reports.Model
@@ -73,6 +75,16 @@ init context pageData =
                 , init = Pages.Organizations.init
                 , toModel = Model_Organizations
                 , toMsg = Msg_Organizations
+                }
+
+        "Organizations/Create" ->
+            initPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Organizations.Create.decoder
+                , init = Pages.Organizations.Create.init
+                , toModel = Model_Organizations_Create
+                , toMsg = Msg_Organizations_Create
                 }
 
         "Contacts/Index" ->
@@ -154,6 +166,17 @@ onPropsChanged ctx pageData model =
                 , toMsg = Msg_Organizations
                 }
 
+        Model_Organizations_Create pageModel ->
+            onPropsChangedPage
+                { context = ctx
+                , pageData = pageData
+                , model = pageModel
+                , decoder = Pages.Organizations.Create.decoder
+                , onPropsChanged = Pages.Organizations.Create.onPropsChanged
+                , toModel = Model_Organizations_Create
+                , toMsg = Msg_Organizations_Create
+                }
+
         Model_Contacts pageModel ->
             onPropsChangedPage
                 { context = ctx
@@ -202,6 +225,7 @@ type Msg
     = Msg_Login Pages.Login.Msg
     | Msg_Dashboard Pages.Dashboard.Msg
     | Msg_Organizations Pages.Organizations.Msg
+    | Msg_Organizations_Create Pages.Organizations.Create.Msg
     | Msg_Contacts Pages.Contacts.Msg
     | Msg_Users Pages.Users.Msg
     | Msg_Reports Pages.Reports.Msg
@@ -229,6 +253,12 @@ update ctx msg model =
                 |> Tuple.mapBoth
                     Model_Organizations
                     (Effect.map Msg_Organizations)
+
+        ( Msg_Organizations_Create pageMsg, Model_Organizations_Create pageModel ) ->
+            Pages.Organizations.Create.update ctx pageMsg pageModel
+                |> Tuple.mapBoth
+                    Model_Organizations_Create
+                    (Effect.map Msg_Organizations_Create)
 
         ( Msg_Contacts pageMsg, Model_Contacts pageModel ) ->
             Pages.Contacts.update ctx pageMsg pageModel
@@ -281,6 +311,10 @@ subscriptions context model =
             Pages.Organizations.subscriptions context pageModel
                 |> Sub.map Msg_Organizations
 
+        Model_Organizations_Create pageModel ->
+            Pages.Organizations.Create.subscriptions context pageModel
+                |> Sub.map Msg_Organizations_Create
+
         Model_Contacts pageModel ->
             Pages.Contacts.subscriptions context pageModel
                 |> Sub.map Msg_Contacts
@@ -320,6 +354,10 @@ view context model =
         Model_Organizations pageModel ->
             Pages.Organizations.view context pageModel
                 |> Extra.Document.map Msg_Organizations
+
+        Model_Organizations_Create pageModel ->
+            Pages.Organizations.Create.view context pageModel
+                |> Extra.Document.map Msg_Organizations_Create
 
         Model_Contacts pageModel ->
             Pages.Contacts.view context pageModel
