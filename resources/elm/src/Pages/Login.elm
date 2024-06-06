@@ -160,7 +160,7 @@ view ctx model =
     , body =
         [ div [ class "flex items-center justify-center p-6 min-h-screen bg-indigo-800" ]
             [ div [ class "w-full max-w-md" ]
-                [ div [ class "w-24 mx-auto" ] [ Components.Logo.view ]
+                [ Components.Logo.viewBig
                 , form
                     [ Html.Events.onSubmit FormSubmitted
                     , class "mt-8 bg-white rounded-lg shadow-xl overflow-hidden"

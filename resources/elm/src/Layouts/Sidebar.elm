@@ -349,7 +349,7 @@ viewNavbar { user, toMsg } =
         [ class "md:flex md:shrink-0" ]
         [ div [ class "flex items-center justify-between px-6 py-4 bg-indigo-900 md:shrink-0 md:justify-center md:w-56" ]
             [ a [ class "mt-1", href "/" ]
-                [ Components.Logo.view
+                [ Components.Logo.viewSmall
                 ]
             , button
                 [ type_ "button"
