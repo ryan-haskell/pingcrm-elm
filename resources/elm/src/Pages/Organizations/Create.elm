@@ -18,9 +18,6 @@ import Browser exposing (Document)
 import Components.CreateHeader
 import Components.Form
 import Context exposing (Context)
-import Domain.Auth exposing (Auth)
-import Domain.CommonProps exposing (CommonProps)
-import Domain.Flash exposing (Flash)
 import Effect exposing (Effect)
 import Extra.Http
 import Extra.Json.Encode as E
@@ -31,6 +28,9 @@ import Http
 import Json.Decode
 import Json.Encode
 import Layouts.Sidebar
+import Shared.Auth exposing (Auth)
+import Shared.CommonProps exposing (CommonProps)
+import Shared.Flash exposing (Flash)
 
 
 
@@ -47,8 +47,8 @@ type alias Props =
 decoder : Json.Decode.Decoder Props
 decoder =
     Json.Decode.map3 Props
-        (Json.Decode.field "auth" Domain.Auth.decoder)
-        (Json.Decode.field "flash" Domain.Flash.decoder)
+        (Json.Decode.field "auth" Shared.Auth.decoder)
+        (Json.Decode.field "flash" Shared.Flash.decoder)
         (Json.Decode.field "errors" errorsDecoder)
 
 
@@ -205,7 +205,7 @@ update ctx msg ({ errors } as model) =
             , Effect.post
                 { url = "/organizations"
                 , body = body
-                , decoder = Domain.CommonProps.decoder errorsDecoder
+                , decoder = Shared.CommonProps.decoder errorsDecoder
                 , onResponse = CreateApiResponded
                 }
             )

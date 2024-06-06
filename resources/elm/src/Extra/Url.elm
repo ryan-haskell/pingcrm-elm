@@ -1,6 +1,11 @@
-module Extra.Url exposing (getQueryParameter)
+module Extra.Url exposing (fromAbsoluteUrl, getQueryParameter)
 
 import Url exposing (Url)
+
+
+fromAbsoluteUrl : String -> Maybe Url
+fromAbsoluteUrl absoluteUrl =
+    Url.fromString ("https://example.com" ++ absoluteUrl)
 
 
 getQueryParameter : String -> Url -> Maybe String

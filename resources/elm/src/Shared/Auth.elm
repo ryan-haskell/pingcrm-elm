@@ -1,4 +1,4 @@
-module Domain.Auth exposing
+module Shared.Auth exposing
     ( Auth, decoder
     , User, Account
     )

@@ -17,16 +17,15 @@ module Pages.Login exposing
 import Browser exposing (Document)
 import Components.Logo
 import Context exposing (Context)
-import Domain.Auth exposing (Auth)
 import Effect exposing (Effect)
 import Extra.Http
 import Html exposing (..)
 import Html.Attributes as Attr exposing (attribute, class, href)
 import Html.Events
 import Http
-import Inertia.PageData exposing (PageData)
 import Json.Decode
 import Json.Encode
+import Shared.Auth exposing (Auth)
 
 
 

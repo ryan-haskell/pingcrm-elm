@@ -17,13 +17,13 @@ module Pages.Contacts exposing
 import Browser exposing (Document)
 import Components.Table
 import Context exposing (Context)
-import Domain.Auth exposing (Auth)
-import Domain.Flash exposing (Flash)
 import Effect exposing (Effect)
 import Html exposing (..)
 import Html.Attributes exposing (attribute, class, href)
 import Json.Decode
 import Layouts.Sidebar
+import Shared.Auth exposing (Auth)
+import Shared.Flash exposing (Flash)
 
 
 
@@ -41,8 +41,8 @@ type alias Props =
 decoder : Json.Decode.Decoder Props
 decoder =
     Json.Decode.map4 Props
-        (Json.Decode.field "auth" Domain.Auth.decoder)
-        (Json.Decode.field "flash" Domain.Flash.decoder)
+        (Json.Decode.field "auth" Shared.Auth.decoder)
+        (Json.Decode.field "flash" Shared.Flash.decoder)
         (Json.Decode.field "contacts" (Json.Decode.field "data" (Json.Decode.list contactDecoder)))
         (Json.Decode.at [ "contacts", "last_page" ] Json.Decode.int)
 

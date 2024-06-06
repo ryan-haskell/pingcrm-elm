@@ -1,4 +1,4 @@
-port module Main exposing (main)
+module Main exposing (main)
 
 import Browser exposing (UrlRequest)
 import Browser.Dom
@@ -8,15 +8,16 @@ import Context exposing (Context)
 import Effect exposing (Effect)
 import Extra.Document exposing (Document)
 import Extra.Http
-import Flags exposing (Flags)
+import Extra.Url
 import Html exposing (Html)
 import Http
-import Inertia.PageData exposing (PageData)
+import Interop exposing (Flags)
 import Json.Decode
 import Layouts.Sidebar
 import Pages
 import Pages.Dashboard
 import Process
+import Shared.PageData exposing (PageData)
 import Task
 import Url exposing (Url)
 
@@ -40,9 +41,9 @@ main =
 type alias Model =
     { url : Url
     , key : Key
+    , page : Pages.Model
     , pageData : PageData Json.Decode.Value
     , xsrfToken : String
-    , page : Pages.Model
     , isMobile : Bool
     }
 
@@ -52,7 +53,7 @@ init flags url key =
     let
         isMobile : Bool
         isMobile =
-            flags.window.width <= 740
+            flags.window.width <= toFloat mobileBreakpoint
 
         context : Context
         context =
@@ -106,9 +107,29 @@ update msg model =
             )
 
         UrlChanged url ->
-            ( { model | url = url }
-            , toInertiaNavigateCmd model url
-            )
+            if model.url == url then
+                ( model, Cmd.none )
+
+            else
+                ( { model | url = url }
+                , Http.request
+                    { method = "GET"
+                    , url = Url.toString url
+                    , headers =
+                        [ Http.header "Accept" "text/html, application/xhtml+xml"
+                        , Http.header "X-Requested-With" "XMLHttpRequest"
+                        , Http.header "X-Inertia" "true"
+                        , Http.header "X-XSRF-TOKEN" model.xsrfToken
+                        ]
+                    , body = Http.emptyBody
+                    , timeout = Nothing
+                    , tracker = Nothing
+                    , expect =
+                        Http.expectJson
+                            (InertiaPageDataResponded url)
+                            (Shared.PageData.decoder Json.Decode.value)
+                    }
+                )
 
         InertiaPageDataResponded url (Ok pageData) ->
             let
@@ -128,17 +149,17 @@ update msg model =
             ( { model | pageData = pageData, page = page }
             , Cmd.batch
                 [ toCmd model (Effect.map Page pageCmd)
-                , refreshXsrfToken ()
+                , Interop.refreshXsrfToken ()
                 , scrollToTop
                 ]
             )
 
         InertiaPageDataResponded url (Err httpError) ->
             ( model
-            , Cmd.none |> Debug.log "TODO: Show problem to user"
-              --     { message = Extra.Http.toUserFriendlyMessage httpError
-              --     , details = Just ("Unable to navigate to " ++ url.path)
-              --     }
+            , Interop.reportNavigationError
+                { url = Url.toString url
+                , error = Extra.Http.toUserFriendlyMessage httpError
+                }
             )
 
         Page pageMsg ->
@@ -160,7 +181,7 @@ update msg model =
             )
 
         Resize width height ->
-            ( { model | isMobile = width <= 740 }
+            ( { model | isMobile = width <= mobileBreakpoint }
             , Cmd.none
             )
 
@@ -187,7 +208,7 @@ subscriptions model =
         [ Pages.subscriptions context model.page
             |> Sub.map Page
         , Browser.Events.onResize Resize
-        , onXsrfTokenRefreshed XsrfTokenRefreshed
+        , Interop.onXsrfTokenRefreshed XsrfTokenRefreshed
         ]
 
 
@@ -209,125 +230,95 @@ view model =
 
 
 
--- PERFORMING EFFECTS
+-- EFFECTS
 
 
 toCmd : Model -> Effect Msg -> Cmd Msg
 toCmd model effect =
     effect
         |> Effect.switch
-            { onNone =
-                Cmd.none
-            , onBatch =
-                \effects ->
-                    Cmd.batch (List.map (toCmd model) effects)
-            , onSendMsg =
-                \msg ->
-                    Task.succeed msg
-                        |> Task.perform identity
-            , onSendDelayedMsg =
-                \delay msg ->
-                    Process.sleep delay
-                        |> Task.map (\_ -> msg)
-                        |> Task.perform identity
-            , onInertiaHttp =
-                \req ->
-                    Http.request
-                        { method = req.method
-                        , url = req.url
-                        , headers =
-                            [ Http.header "Accept" "text/html, application/xhtml+xml"
-                            , Http.header "X-Requested-With" "XMLHttpRequest"
-                            , Http.header "X-Inertia" "true"
-                            , Http.header "X-XSRF-TOKEN" model.xsrfToken
-                            ]
-                        , body = req.body
-                        , timeout = Nothing
-                        , tracker = Nothing
-                        , expect =
-                            Http.expectJson (toHttpMsg model req)
-                                (Inertia.PageData.decoder req.decoder)
-                        }
-            , onReportJsonDecodeError =
-                \{ page, error } ->
-                    reportJsonDecodeError
-                        { page = page
-                        , error = Json.Decode.errorToString error
-                        }
-            , onPushUrl =
-                \url ->
-                    Nav.pushUrl model.key url
+            { onNone = Cmd.none
+            , onBatch = onBatch model
+            , onSendMsg = onSendMsg model
+            , onSendDelayedMsg = onSendDelayedMsg model
+            , onInertiaHttp = onInertiaHttp model
+            , onReportJsonDecodeError = onReportJsonDecodeError model
+            , onPushUrl = onPushUrl model
             }
 
 
-toHttpMsg :
-    Model
-    -> { req | onFailure : Http.Error -> Msg }
-    -> Result Http.Error (PageData Msg)
-    -> Msg
-toHttpMsg ({ url } as model) req result =
-    case result of
-        Ok newPageData ->
-            if model.pageData.component == newPageData.component then
-                newPageData.props
-
-            else
-                -- TODO: This way of making a URL seems dumb
-                UrlRequested
-                    (Browser.Internal
-                        { url
-                            | path = newPageData.url
-                            , fragment = Nothing
-                            , query = Nothing
-                        }
-                    )
-
-        Err httpError ->
-            req.onFailure httpError
+onBatch : Model -> List (Effect Msg) -> Cmd Msg
+onBatch model effects =
+    Cmd.batch (List.map (toCmd model) effects)
 
 
-
--- INERTIA NAVIGATION
-
-
-toInertiaNavigateCmd : Model -> Url -> Cmd Msg
-toInertiaNavigateCmd model url =
-    if model.url == url then
-        Cmd.none
-
-    else
-        Http.request
-            { method = "GET"
-            , url = Url.toString url
-            , headers =
-                [ Http.header "Accept" "text/html, application/xhtml+xml"
-                , Http.header "X-Requested-With" "XMLHttpRequest"
-                , Http.header "X-Inertia" "true"
-                , Http.header "X-XSRF-TOKEN" model.xsrfToken
-                ]
-            , body = Http.emptyBody
-            , timeout = Nothing
-            , tracker = Nothing
-            , expect =
-                Http.expectJson
-                    (InertiaPageDataResponded url)
-                    (Inertia.PageData.decoder Json.Decode.value)
-            }
+onSendMsg : Model -> Msg -> Cmd Msg
+onSendMsg model msg =
+    Task.succeed msg
+        |> Task.perform identity
 
 
-
--- ERRORS
--- showProblem : { message : String, details : Maybe String } -> Cmd Msg
--- showProblem problem =
---     Task.succeed (ShowProblem problem)
---         |> Task.perform identity
--- PORTS
+onSendDelayedMsg : Model -> Float -> Msg -> Cmd Msg
+onSendDelayedMsg model delay msg =
+    Process.sleep delay
+        |> Task.map (\_ -> msg)
+        |> Task.perform identity
 
 
-port refreshXsrfToken : () -> Cmd msg
+onInertiaHttp : Model -> Extra.Http.Request Msg -> Cmd Msg
+onInertiaHttp ({ url } as model) req =
+    let
+        toHttpMsg : Result Http.Error (PageData Msg) -> Msg
+        toHttpMsg result =
+            case result of
+                Ok newPageData ->
+                    if model.pageData.component == newPageData.component then
+                        newPageData.props
+
+                    else
+                        case Extra.Url.fromAbsoluteUrl newPageData.url of
+                            Just newUrl ->
+                                UrlRequested (Browser.Internal newUrl)
+
+                            Nothing ->
+                                UrlRequested (Browser.External newPageData.url)
+
+                Err httpError ->
+                    req.onFailure httpError
+    in
+    Http.request
+        { method = req.method
+        , url = req.url
+        , headers =
+            [ Http.header "Accept" "text/html, application/xhtml+xml"
+            , Http.header "X-Requested-With" "XMLHttpRequest"
+            , Http.header "X-Inertia" "true"
+            , Http.header "X-XSRF-TOKEN" model.xsrfToken
+            ]
+        , body = req.body
+        , timeout = Nothing
+        , tracker = Nothing
+        , expect = Http.expectJson toHttpMsg (Shared.PageData.decoder req.decoder)
+        }
 
 
-port reportJsonDecodeError : { page : String, error : String } -> Cmd msg
+onReportJsonDecodeError : Model -> { page : String, error : Json.Decode.Error } -> Cmd Msg
+onReportJsonDecodeError model { page, error } =
+    Interop.reportJsonDecodeError
+        { page = page
+        , error = Json.Decode.errorToString error
+        }
 
 
-port onXsrfTokenRefreshed : (String -> msg) -> Sub msg
+onPushUrl : Model -> String -> Cmd Msg
+onPushUrl model url =
+    Nav.pushUrl model.key url
+
+
+
+-- CONSTANTS
+
+
+mobileBreakpoint : Int
+mobileBreakpoint =
+    740

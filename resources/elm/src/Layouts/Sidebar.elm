@@ -1,13 +1,12 @@
 module Layouts.Sidebar exposing
     ( Model, Msg
-    , init, update, view
-    , subscriptions
+    , init, update, subscriptions, view
     )
 
 {-|
 
 @docs Model, Msg
-@docs init, update, view
+@docs init, update, subscriptions, view
 
 -}
 
@@ -17,7 +16,6 @@ import Components.Dropdown
 import Components.Flash
 import Components.Icon
 import Components.Logo
-import Domain.Flash exposing (Flash)
 import Effect exposing (Effect)
 import Extra.Http
 import Html exposing (..)
@@ -26,6 +24,7 @@ import Html.Events
 import Http
 import Json.Decode
 import Json.Encode
+import Shared.Flash exposing (Flash)
 import Url exposing (Url)
 
 

@@ -1,4 +1,4 @@
-module Domain.Flash exposing (Flash, decoder)
+module Shared.Flash exposing (Flash, decoder)
 
 import Json.Decode
 

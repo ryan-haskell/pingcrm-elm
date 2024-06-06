@@ -1,8 +1,8 @@
-module Domain.CommonProps exposing (CommonProps, decoder)
+module Shared.CommonProps exposing (CommonProps, decoder)
 
-import Domain.Auth exposing (Auth)
-import Domain.Flash exposing (Flash)
 import Json.Decode
+import Shared.Auth exposing (Auth)
+import Shared.Flash exposing (Flash)
 
 
 type alias CommonProps errors =
@@ -15,6 +15,6 @@ type alias CommonProps errors =
 decoder : Json.Decode.Decoder errors -> Json.Decode.Decoder (CommonProps errors)
 decoder errorsDecoder =
     Json.Decode.map3 CommonProps
-        (Json.Decode.field "auth" Domain.Auth.decoder)
-        (Json.Decode.field "flash" Domain.Flash.decoder)
+        (Json.Decode.field "auth" Shared.Auth.decoder)
+        (Json.Decode.field "flash" Shared.Flash.decoder)
         (Json.Decode.field "errors" errorsDecoder)

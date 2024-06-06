@@ -1,4 +1,4 @@
-module Inertia.PageData exposing
+module Shared.PageData exposing
     ( PageData
     , decoder
     )

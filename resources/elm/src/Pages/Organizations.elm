@@ -19,8 +19,6 @@ import Components.Dropdown
 import Components.Icon
 import Components.Table
 import Context exposing (Context)
-import Domain.Auth exposing (Auth)
-import Domain.Flash exposing (Flash)
 import Effect exposing (Effect)
 import Extra.Url
 import Html exposing (..)
@@ -28,6 +26,8 @@ import Html.Attributes as Attr exposing (attribute, class, href)
 import Html.Events
 import Json.Decode
 import Layouts.Sidebar
+import Shared.Auth exposing (Auth)
+import Shared.Flash exposing (Flash)
 import Url exposing (Url)
 import Url.Builder
 
@@ -47,8 +47,8 @@ type alias Props =
 decoder : Json.Decode.Decoder Props
 decoder =
     Json.Decode.map4 Props
-        (Json.Decode.field "auth" Domain.Auth.decoder)
-        (Json.Decode.field "flash" Domain.Flash.decoder)
+        (Json.Decode.field "auth" Shared.Auth.decoder)
+        (Json.Decode.field "flash" Shared.Flash.decoder)
         (Json.Decode.field "organizations" (Json.Decode.field "data" (Json.Decode.list organizationDecoder)))
         (Json.Decode.at [ "organizations", "last_page" ] Json.Decode.int)
 
