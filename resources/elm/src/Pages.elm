@@ -31,6 +31,7 @@ import Pages.Organizations.Edit
 import Pages.Reports
 import Pages.Users
 import Pages.Users.Create
+import Pages.Users.Edit
 import Shared.PageData exposing (PageData)
 
 
@@ -44,11 +45,12 @@ type Model
     | Model_Organizations { props : Pages.Organizations.Props, model : Pages.Organizations.Model }
     | Model_Organizations_Create { props : Pages.Organizations.Create.Props, model : Pages.Organizations.Create.Model }
     | Model_Organizations_Edit { props : Pages.Organizations.Edit.Props, model : Pages.Organizations.Edit.Model }
+    | Model_Contacts { props : Pages.Contacts.Props, model : Pages.Contacts.Model }
     | Model_Contacts_Create { props : Pages.Contacts.Create.Props, model : Pages.Contacts.Create.Model }
     | Model_Contacts_Edit { props : Pages.Contacts.Edit.Props, model : Pages.Contacts.Edit.Model }
-    | Model_Users_Create { props : Pages.Users.Create.Props, model : Pages.Users.Create.Model }
-    | Model_Contacts { props : Pages.Contacts.Props, model : Pages.Contacts.Model }
     | Model_Users { props : Pages.Users.Props, model : Pages.Users.Model }
+    | Model_Users_Create { props : Pages.Users.Create.Props, model : Pages.Users.Create.Model }
+    | Model_Users_Edit { props : Pages.Users.Edit.Props, model : Pages.Users.Edit.Model }
     | Model_Reports { props : Pages.Reports.Props, model : Pages.Reports.Model }
     | Model_Error404 Pages.Error404.Model
     | Model_Error500 Pages.Error500.Model
@@ -157,6 +159,16 @@ init context pageData =
                 , toMsg = Msg_Users_Create
                 }
 
+        "Users/Edit" ->
+            initPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Users.Edit.decoder
+                , init = Pages.Users.Edit.init
+                , toModel = Model_Users_Edit
+                , toMsg = Msg_Users_Edit
+                }
+
         "Reports/Index" ->
             initPage
                 { context = context
@@ -186,11 +198,12 @@ type Msg
     | Msg_Organizations Pages.Organizations.Msg
     | Msg_Organizations_Create Pages.Organizations.Create.Msg
     | Msg_Organizations_Edit Pages.Organizations.Edit.Msg
-    | Msg_Users_Create Pages.Users.Create.Msg
     | Msg_Contacts Pages.Contacts.Msg
     | Msg_Contacts_Create Pages.Contacts.Create.Msg
     | Msg_Contacts_Edit Pages.Contacts.Edit.Msg
     | Msg_Users Pages.Users.Msg
+    | Msg_Users_Create Pages.Users.Create.Msg
+    | Msg_Users_Edit Pages.Users.Edit.Msg
     | Msg_Reports Pages.Reports.Msg
     | Msg_Error404 Pages.Error404.Msg
     | Msg_Error500 Pages.Error500.Msg
@@ -258,6 +271,12 @@ update ctx pageData msg model =
                 |> Tuple.mapBoth
                     (\m -> Model_Users_Create { props = page.props, model = m })
                     (Effect.map Msg_Users_Create)
+
+        ( Msg_Users_Edit pageMsg, Model_Users_Edit page ) ->
+            Pages.Users.Edit.update ctx page.props pageMsg page.model
+                |> Tuple.mapBoth
+                    (\m -> Model_Users_Edit { props = page.props, model = m })
+                    (Effect.map Msg_Users_Edit)
 
         ( Msg_Reports pageMsg, Model_Reports page ) ->
             Pages.Reports.update ctx page.props pageMsg page.model
@@ -396,6 +415,17 @@ onPropsChanged ctx pageData model =
                 , toMsg = Msg_Users_Create
                 }
 
+        Model_Users_Edit page ->
+            onPropsChangedPage
+                { context = ctx
+                , pageData = pageData
+                , model = page.model
+                , decoder = Pages.Users.Edit.decoder
+                , onPropsChanged = Pages.Users.Edit.onPropsChanged
+                , toModel = Model_Users_Edit
+                , toMsg = Msg_Users_Edit
+                }
+
         Model_Reports page ->
             onPropsChangedPage
                 { context = ctx
@@ -457,6 +487,10 @@ subscriptions context pageData model =
             Pages.Users.Create.subscriptions context page.props page.model
                 |> Sub.map Msg_Users_Create
 
+        Model_Users_Edit page ->
+            Pages.Users.Edit.subscriptions context page.props page.model
+                |> Sub.map Msg_Users_Edit
+
         Model_Reports page ->
             Pages.Reports.subscriptions context page.props page.model
                 |> Sub.map Msg_Reports
@@ -516,6 +550,10 @@ view context pageData model =
         Model_Users_Create page ->
             Pages.Users.Create.view context page.props page.model
                 |> Extra.Document.map Msg_Users_Create
+
+        Model_Users_Edit page ->
+            Pages.Users.Edit.view context page.props page.model
+                |> Extra.Document.map Msg_Users_Edit
 
         Model_Reports page ->
             Pages.Reports.view context page.props page.model
