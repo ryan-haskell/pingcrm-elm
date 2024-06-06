@@ -17,6 +17,7 @@ module Pages.Organizations.Edit exposing
 import Browser exposing (Document)
 import Components.Form
 import Components.Header
+import Components.RestoreBanner
 import Context exposing (Context)
 import Effect exposing (Effect)
 import Extra.Http
@@ -171,8 +172,11 @@ type Msg
     = Sidebar Layouts.Sidebar.Msg
     | ChangedInput Field String
     | SubmittedUpdateForm
+    | UpdateResponded (Result Http.Error ())
     | ClickedDelete
-    | EditApiResponded (Result Http.Error Props)
+    | DeleteResponded (Result Http.Error ())
+    | ClickedRestore
+    | RestoreResponded (Result Http.Error ())
 
 
 update : Context -> Props -> Msg -> Model -> ( Model, Effect Msg )
@@ -244,8 +248,8 @@ update ctx props msg ({ errors } as model) =
                         ]
                         []
                 , body = body
-                , decoder = decoder
-                , onResponse = EditApiResponded
+                , decoder = Json.Decode.succeed ()
+                , onResponse = UpdateResponded
                 }
             )
 
@@ -258,19 +262,51 @@ update ctx props msg ({ errors } as model) =
                         , String.fromInt props.organization.id
                         ]
                         []
-                , decoder = decoder
-                , onResponse = EditApiResponded
+                , decoder = Json.Decode.succeed ()
+                , onResponse = DeleteResponded
                 }
             )
 
-        EditApiResponded (Ok res) ->
+        DeleteResponded (Ok ()) ->
+            ( model, Effect.none )
+
+        DeleteResponded (Err httpError) ->
+            ( { model | sidebar = Layouts.Sidebar.withFlashHttpError httpError model.sidebar }
+            , Effect.none
+            )
+
+        ClickedRestore ->
+            ( model
+            , Effect.put
+                { url =
+                    Url.Builder.absolute
+                        [ "organizations"
+                        , String.fromInt props.organization.id
+                        , "restore"
+                        ]
+                        []
+                , body = Json.Encode.null
+                , decoder = Json.Decode.succeed ()
+                , onResponse = RestoreResponded
+                }
+            )
+
+        RestoreResponded (Ok ()) ->
+            ( model, Effect.none )
+
+        RestoreResponded (Err httpError) ->
+            ( { model | sidebar = Layouts.Sidebar.withFlashHttpError httpError model.sidebar }
+            , Effect.none
+            )
+
+        UpdateResponded (Ok ()) ->
             ( { model | isSubmittingForm = False }
             , Effect.none
             )
 
-        EditApiResponded (Err httpError) ->
+        UpdateResponded (Err httpError) ->
             ( { model
-                | sidebar = Layouts.Sidebar.withFlashError (Extra.Http.toUserFriendlyMessage httpError) model.sidebar
+                | sidebar = Layouts.Sidebar.withFlashHttpError httpError model.sidebar
                 , isSubmittingForm = False
               }
             , Effect.none
@@ -309,22 +345,28 @@ view ctx props model =
             [ Components.Header.view
                 { label = "Organizations"
                 , url = "/organizations"
-                , content = "Edit"
+                , content = props.organization.name
                 }
-            , viewEditForm model
+            , Components.RestoreBanner.view
+                { deletedAt = props.organization.deletedAt
+                , noun = "organization"
+                , onClick = ClickedRestore
+                }
+            , viewEditForm props model
             ]
         , overlays = []
         }
 
 
 
--- CREATE FORM
+-- EDIT FORM
 
 
-viewEditForm : Model -> Html Msg
-viewEditForm model =
+viewEditForm : Props -> Model -> Html Msg
+viewEditForm props model =
     Components.Form.edit
         { onUpdate = SubmittedUpdateForm
+        , isDeleted = props.organization.deletedAt /= Nothing
         , onDelete = ClickedDelete
         , noun = "Organization"
         , isSubmittingForm = model.isSubmittingForm

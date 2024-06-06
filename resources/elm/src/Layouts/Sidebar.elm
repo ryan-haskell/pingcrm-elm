@@ -1,7 +1,7 @@
 module Layouts.Sidebar exposing
     ( Model, Msg
     , init, update, subscriptions, view
-    , withFlash, withFlashError, withFlashSuccess
+    , withFlash, withFlashHttpError
     )
 
 {-|
@@ -9,7 +9,7 @@ module Layouts.Sidebar exposing
 @docs Model, Msg
 @docs init, update, subscriptions, view
 
-@docs withFlash, withFlashError, withFlashSuccess
+@docs withFlash, withFlashHttpError
 
 -}
 
@@ -446,11 +446,12 @@ withFlash flash (Model model) =
     Model { model | flash = flash }
 
 
-withFlashError : String -> Model -> Model
-withFlashError message (Model model) =
-    Model { model | flash = { success = Nothing, error = Just message } }
-
-
-withFlashSuccess : String -> Model -> Model
-withFlashSuccess message (Model model) =
-    Model { model | flash = { success = Just message, error = Nothing } }
+withFlashHttpError : Http.Error -> Model -> Model
+withFlashHttpError httpError (Model model) =
+    Model
+        { model
+            | flash =
+                { success = Nothing
+                , error = Just (Extra.Http.toUserFriendlyMessage httpError)
+                }
+        }

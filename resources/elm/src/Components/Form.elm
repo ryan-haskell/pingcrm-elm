@@ -44,6 +44,7 @@ create props =
 edit :
     { onUpdate : msg
     , onDelete : msg
+    , isDeleted : Bool
     , isSubmittingForm : Bool
     , noun : String
     , inputs : List (Html msg)
@@ -56,13 +57,17 @@ edit props =
         , isSubmittingForm = props.isSubmittingForm
         , controls =
             div [ class "flex items-center px-8 py-4 bg-gray-50 border-t border-gray-100" ]
-                [ Html.button
-                    [ class "text-red-600 hover:underline"
-                    , tabindex -1
-                    , type_ "button"
-                    , Html.Events.onClick props.onDelete
-                    ]
-                    [ Html.text ("Delete " ++ props.noun) ]
+                [ if props.isDeleted then
+                    Html.text ""
+
+                  else
+                    Html.button
+                        [ class "text-red-600 hover:underline"
+                        , tabindex -1
+                        , type_ "button"
+                        , Html.Events.onClick props.onDelete
+                        ]
+                        [ Html.text ("Delete " ++ props.noun) ]
                 , loadingButton [ class "flex items-center btn-indigo ml-auto" ]
                     { label = "Update " ++ props.noun
                     , isDisabled = props.isSubmittingForm
