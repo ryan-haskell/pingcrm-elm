@@ -55,7 +55,7 @@ type alias Model =
 init : Context -> Props -> ( Model, Effect Msg )
 init ctx props =
     ( { props = props
-      , sidebar = Layouts.Sidebar.init
+      , sidebar = Layouts.Sidebar.init { flash = props.flash }
       }
     , Effect.none
     )

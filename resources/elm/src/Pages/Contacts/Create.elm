@@ -15,8 +15,8 @@ module Pages.Contacts.Create exposing
 -}
 
 import Browser exposing (Document)
-import Components.CreateHeader
 import Components.Form
+import Components.Header
 import Context exposing (Context)
 import Effect exposing (Effect)
 import Extra.Http
@@ -29,7 +29,6 @@ import Json.Decode
 import Json.Encode
 import Layouts.Sidebar
 import Shared.Auth exposing (Auth)
-import Shared.CommonProps exposing (CommonProps)
 import Shared.Flash exposing (Flash)
 
 
@@ -129,7 +128,7 @@ type Field
 init : Context -> Props -> ( Model, Effect Msg )
 init ctx props =
     ( { props = props
-      , sidebar = Layouts.Sidebar.init
+      , sidebar = Layouts.Sidebar.init { flash = props.flash }
       , isSubmittingForm = False
       , firstName = ""
       , lastName = ""
@@ -162,7 +161,7 @@ type Msg
     = Sidebar Layouts.Sidebar.Msg
     | ChangedInput Field String
     | SubmittedForm
-    | CreateApiResponded (Result Http.Error (CommonProps Errors))
+    | CreateApiResponded (Result Http.Error Props)
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
@@ -242,7 +241,7 @@ update ctx msg ({ errors, props } as model) =
             , Effect.post
                 { url = "/contacts"
                 , body = body
-                , decoder = Shared.CommonProps.decoder errorsDecoder
+                , decoder = decoder
                 , onResponse = CreateApiResponded
                 }
             )
@@ -305,9 +304,10 @@ view ctx model =
         , title = "Create Contact"
         , user = model.props.auth.user
         , content =
-            [ Components.CreateHeader.view
+            [ Components.Header.view
                 { label = "Contacts"
                 , url = "/contacts"
+                , content = "Create"
                 }
             , viewCreateForm model
             ]
@@ -323,7 +323,7 @@ viewCreateForm : Model -> Html Msg
 viewCreateForm model =
     Components.Form.create
         { onSubmit = SubmittedForm
-        , button = "Create Contact"
+        , noun = "Contact"
         , isSubmittingForm = model.isSubmittingForm
         , inputs =
             [ Components.Form.text

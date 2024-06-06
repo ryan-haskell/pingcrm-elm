@@ -1,12 +1,15 @@
 module Layouts.Sidebar exposing
     ( Model, Msg
     , init, update, subscriptions, view
+    , withFlash, withFlashError, withFlashSuccess
     )
 
 {-|
 
 @docs Model, Msg
 @docs init, update, subscriptions, view
+
+@docs withFlash, withFlashError, withFlashSuccess
 
 -}
 
@@ -39,7 +42,7 @@ type Model
 
 type alias Internals =
     { dropdown : DropdownState
-    , problem : Maybe Problem
+    , flash : Flash
     }
 
 
@@ -55,11 +58,11 @@ type alias Problem =
     }
 
 
-init : Model
-init =
+init : { flash : Flash } -> Model
+init props =
     Model
         { dropdown = Closed
-        , problem = Nothing
+        , flash = props.flash
         }
 
 
@@ -73,14 +76,7 @@ type Msg
     | ClickedDismissDropdown
     | ClickedLogout
     | LogoutResponded (Result Http.Error ())
-    | ShowProblem
-        { durationInMs : Maybe Float
-        , problem :
-            { message : String
-            , details : Maybe String
-            }
-        }
-    | DismissedProblem
+    | DismissedFlash
     | PressedEsc
     | NavigationError { url : String, error : String }
 
@@ -147,46 +143,23 @@ update ({ msg, toModel, toMsg } as args) =
             return
                 ( Model
                     { model
-                        | problem =
-                            Just
-                                { message = Extra.Http.toUserFriendlyMessage httpError
-                                , details = Just "Unable to log out the current user."
-                                }
+                        | flash =
+                            { error = Just (Extra.Http.toUserFriendlyMessage httpError)
+                            , success = Nothing
+                            }
                     }
                 , Effect.none
                 )
 
-        ShowProblem { durationInMs, problem } ->
-            case durationInMs of
-                Nothing ->
-                    return
-                        ( Model { model | problem = Just problem }
-                        , Effect.none
-                        )
-
-                Just ms ->
-                    if ms <= 0 then
-                        return
-                            ( Model model, Effect.none )
-
-                    else
-                        return
-                            ( Model model
-                            , Effect.sendDelayedMsg
-                                { delay = ms
-                                , msg = DismissedProblem
-                                }
-                            )
-
-        DismissedProblem ->
+        DismissedFlash ->
             return
-                ( Model { model | problem = Nothing }
+                ( Model { model | flash = { error = Nothing, success = Nothing } }
                 , Effect.none
                 )
 
         NavigationError { url, error } ->
             return
-                ( Model { model | problem = Just { message = error, details = Just url } }
+                ( Model { model | flash = { error = Just error, success = Nothing } }
                 , Effect.none
                 )
 
@@ -396,11 +369,10 @@ viewSidebarAndMainContent :
         | content : List (Html msg)
         , context : { context | url : Url }
         , toMsg : Msg -> msg
-        , flash : { success : Maybe String, error : Maybe String }
     }
     -> Model
     -> Html msg
-viewSidebarAndMainContent { content, context, toMsg, flash } (Model model) =
+viewSidebarAndMainContent { content, context, toMsg } (Model model) =
     div [ class "md:flex md:grow md:overflow-hidden" ]
         [ div [ class "hidden shrink-0 p-12 w-56 bg-indigo-800 overflow-y-auto md:block" ]
             (viewSidebarLinks context.url)
@@ -408,32 +380,25 @@ viewSidebarAndMainContent { content, context, toMsg, flash } (Model model) =
             [ class "px-4 py-8 md:flex-1 md:p-12 md:overflow-y-auto"
             , Attr.id "scroll-region"
             ]
-            (case model.problem of
-                Just problem ->
-                    Components.Flash.viewDismissableError
-                        { message = problem.message
-                        , onDismiss = toMsg DismissedProblem
+            (case model.flash.error of
+                Just message ->
+                    Components.Flash.viewError
+                        { message = message
+                        , onDismiss = toMsg DismissedFlash
                         }
                         :: content
 
                 Nothing ->
-                    case flash.error of
+                    case model.flash.success of
                         Just message ->
-                            Components.Flash.viewError
+                            Components.Flash.viewSuccess
                                 { message = message
+                                , onDismiss = toMsg DismissedFlash
                                 }
                                 :: content
 
                         Nothing ->
-                            case flash.success of
-                                Just message ->
-                                    Components.Flash.viewSuccess
-                                        { message = message
-                                        }
-                                        :: content
-
-                                Nothing ->
-                                    content
+                            content
             )
         ]
 
@@ -441,11 +406,6 @@ viewSidebarAndMainContent { content, context, toMsg, flash } (Model model) =
 dismissDropdown : Model -> Model
 dismissDropdown (Model model) =
     Model { model | dropdown = Closed }
-
-
-showProblem : Problem -> Model -> Model
-showProblem problem (Model model) =
-    Model { model | problem = Just problem }
 
 
 viewLink :
@@ -476,3 +436,22 @@ viewLink props =
                 [ text props.label ]
             ]
         ]
+
+
+
+-- FLASH MESSAGES
+
+
+withFlash : Flash -> Model -> Model
+withFlash flash (Model model) =
+    Model { model | flash = flash }
+
+
+withFlashError : String -> Model -> Model
+withFlashError message (Model model) =
+    Model { model | flash = { success = Nothing, error = Just message } }
+
+
+withFlashSuccess : String -> Model -> Model
+withFlashSuccess message (Model model) =
+    Model { model | flash = { success = Just message, error = Nothing } }

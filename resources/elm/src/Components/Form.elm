@@ -1,13 +1,12 @@
 module Components.Form exposing
-    ( create
+    ( create, edit
     , text, password
     , select
-    , button
     )
 
 {-|
 
-@docs create
+@docs create, edit
 
 @docs text, password
 @docs select
@@ -23,20 +22,67 @@ import Html.Events
 create :
     { onSubmit : msg
     , isSubmittingForm : Bool
-    , button : String
+    , noun : String
     , inputs : List (Html msg)
     }
     -> Html msg
 create props =
-    div [ class "max-w-3xl bg-white rounded-md shadow overflow-hidden" ]
-        [ Html.form [ Html.Events.onSubmit props.onSubmit ]
-            [ div [ class "flex flex-wrap -mb-8 -mr-6 p-8" ] props.inputs
-            , div [ class "flex items-center justify-end px-8 py-4 bg-gray-50 border-t border-gray-100" ]
-                [ button
-                    { label = props.button
+    form
+        { onSubmit = props.onSubmit
+        , inputs = props.inputs
+        , isSubmittingForm = props.isSubmittingForm
+        , controls =
+            div [ class "flex items-center justify-end px-8 py-4 bg-gray-50 border-t border-gray-100" ]
+                [ loadingButton [ class "flex items-center btn-indigo" ]
+                    { label = "Create " ++ props.noun
                     , isDisabled = props.isSubmittingForm
                     }
                 ]
+        }
+
+
+edit :
+    { onUpdate : msg
+    , onDelete : msg
+    , isSubmittingForm : Bool
+    , noun : String
+    , inputs : List (Html msg)
+    }
+    -> Html msg
+edit props =
+    form
+        { onSubmit = props.onUpdate
+        , inputs = props.inputs
+        , isSubmittingForm = props.isSubmittingForm
+        , controls =
+            div [ class "flex items-center px-8 py-4 bg-gray-50 border-t border-gray-100" ]
+                [ Html.button
+                    [ class "text-red-600 hover:underline"
+                    , tabindex -1
+                    , type_ "button"
+                    , Html.Events.onClick props.onDelete
+                    ]
+                    [ Html.text ("Delete " ++ props.noun) ]
+                , loadingButton [ class "flex items-center btn-indigo ml-auto" ]
+                    { label = "Update " ++ props.noun
+                    , isDisabled = props.isSubmittingForm
+                    }
+                ]
+        }
+
+
+form :
+    { onSubmit : msg
+    , isSubmittingForm : Bool
+    , inputs : List (Html msg)
+    , controls : Html msg
+    }
+    -> Html msg
+form props =
+    div [ class "max-w-3xl bg-white rounded-md shadow overflow-hidden" ]
+        [ Html.form [ Html.Events.onSubmit props.onSubmit ]
+            [ div [ class "flex flex-wrap -mb-8 -mr-6 p-8" ] props.inputs
+            , props.controls
             ]
         ]
 
@@ -133,13 +179,14 @@ select props =
         ]
 
 
-button : { label : String, isDisabled : Bool } -> Html msg
-button props =
+loadingButton : List (Attribute msg) -> { label : String, isDisabled : Bool } -> Html msg
+loadingButton attrs props =
     Html.button
-        [ class "flex items-center btn-indigo"
-        , Attr.type_ "submit"
-        , Attr.disabled props.isDisabled
-        ]
+        ([ Attr.type_ "submit"
+         , Attr.disabled props.isDisabled
+         ]
+            ++ attrs
+        )
         [ if props.isDisabled then
             div [ class "btn-spinner mr-2" ] []
 

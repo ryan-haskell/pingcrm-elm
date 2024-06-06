@@ -3,9 +3,14 @@ module Extra.Url exposing (fromAbsoluteUrl, getQueryParameter)
 import Url exposing (Url)
 
 
-fromAbsoluteUrl : String -> Maybe Url
-fromAbsoluteUrl absoluteUrl =
-    Url.fromString ("https://example.com" ++ absoluteUrl)
+fromAbsoluteUrl : String -> Url -> Maybe Url
+fromAbsoluteUrl absoluteUrl url =
+    let
+        baseUrl : String
+        baseUrl =
+            Url.toString { url | fragment = Nothing, query = Nothing, path = "" }
+    in
+    Url.fromString (baseUrl ++ absoluteUrl)
 
 
 getQueryParameter : String -> Url -> Maybe String
