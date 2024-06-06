@@ -30,7 +30,7 @@ main =
         , view = view
         , subscriptions = subscriptions
         , onUrlChange = UrlChanged
-        , onUrlRequest = UrlRequested
+        , onUrlRequest = UrlRequested LinkClicked
         }
 
 
@@ -45,6 +45,7 @@ type alias Model =
     , pageData : PageData Json.Decode.Value
     , xsrfToken : String
     , isMobile : Bool
+    , urlRequestSource : UrlRequestSource
     }
 
 
@@ -72,6 +73,7 @@ init flags url key =
             , xsrfToken = flags.xsrfToken
             , page = page
             , isMobile = isMobile
+            , urlRequestSource = AppLoaded
             }
     in
     ( model
@@ -86,23 +88,29 @@ init flags url key =
 type Msg
     = Page Pages.Msg
     | UrlChanged Url
-    | UrlRequested UrlRequest
+    | UrlRequested UrlRequestSource UrlRequest
     | InertiaPageDataResponded Url (Result Http.Error (PageData Json.Decode.Value))
     | Resize Int Int
     | XsrfTokenRefreshed String
     | ScrollFinished
 
 
+type UrlRequestSource
+    = AppLoaded
+    | LinkClicked
+    | InertiaHttp (PageData Json.Decode.Value)
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        UrlRequested (Browser.Internal url) ->
-            ( model
+        UrlRequested urlRequestSource (Browser.Internal url) ->
+            ( { model | urlRequestSource = urlRequestSource }
             , Nav.pushUrl model.key (Url.toString url)
             )
 
-        UrlRequested (Browser.External href) ->
-            ( model
+        UrlRequested urlRequestSource (Browser.External href) ->
+            ( { model | urlRequestSource = urlRequestSource }
             , Nav.load href
             )
 
@@ -111,24 +119,42 @@ update msg model =
                 ( model, Cmd.none )
 
             else
+                let
+                    performInertiaGetRequest : Cmd Msg
+                    performInertiaGetRequest =
+                        Http.request
+                            { method = "GET"
+                            , url = Url.toString url
+                            , headers =
+                                [ Http.header "Accept" "text/html, application/xhtml+xml"
+                                , Http.header "X-Requested-With" "XMLHttpRequest"
+                                , Http.header "X-Inertia" "true"
+                                , Http.header "X-XSRF-TOKEN" model.xsrfToken
+                                ]
+                            , body = Http.emptyBody
+                            , timeout = Nothing
+                            , tracker = Nothing
+                            , expect =
+                                Http.expectJson
+                                    (InertiaPageDataResponded url)
+                                    (Shared.PageData.decoder Json.Decode.value)
+                            }
+                in
                 ( { model | url = url }
-                , Http.request
-                    { method = "GET"
-                    , url = Url.toString url
-                    , headers =
-                        [ Http.header "Accept" "text/html, application/xhtml+xml"
-                        , Http.header "X-Requested-With" "XMLHttpRequest"
-                        , Http.header "X-Inertia" "true"
-                        , Http.header "X-XSRF-TOKEN" model.xsrfToken
-                        ]
-                    , body = Http.emptyBody
-                    , timeout = Nothing
-                    , tracker = Nothing
-                    , expect =
-                        Http.expectJson
-                            (InertiaPageDataResponded url)
-                            (Shared.PageData.decoder Json.Decode.value)
-                    }
+                , case model.urlRequestSource of
+                    AppLoaded ->
+                        performInertiaGetRequest
+
+                    LinkClicked ->
+                        performInertiaGetRequest
+
+                    InertiaHttp newPageData ->
+                        if newPageData.component == model.pageData.component then
+                            performInertiaGetRequest
+
+                        else
+                            Task.succeed (Ok newPageData)
+                                |> Task.perform (InertiaPageDataResponded url)
                 )
 
         InertiaPageDataResponded url (Ok pageData) ->
@@ -268,23 +294,32 @@ onSendDelayedMsg model delay msg =
 onInertiaHttp : Model -> Extra.Http.Request Msg -> Cmd Msg
 onInertiaHttp ({ url } as model) req =
     let
-        toHttpMsg : Result Http.Error (PageData Msg) -> Msg
+        toHttpMsg : Result Http.Error (PageData Json.Decode.Value) -> Msg
         toHttpMsg result =
             case result of
                 Ok newPageData ->
                     if model.pageData.component == newPageData.component then
-                        newPageData.props
+                        case Json.Decode.decodeValue req.decoder newPageData.props of
+                            Ok msg ->
+                                msg
+
+                            Err jsonDecodeError ->
+                                req.onFailure (Http.BadBody (Json.Decode.errorToString jsonDecodeError))
 
                     else
-                        case Extra.Url.fromAbsoluteUrl newPageData.url of
+                        case Extra.Url.fromAbsoluteUrl newPageData.url url of
                             Just newUrl ->
-                                UrlRequested (Browser.Internal newUrl)
+                                UrlRequested (InertiaHttp newPageData) (Browser.Internal newUrl)
 
                             Nothing ->
-                                UrlRequested (Browser.External newPageData.url)
+                                UrlRequested (InertiaHttp newPageData) (Browser.External newPageData.url)
 
                 Err httpError ->
                     req.onFailure httpError
+
+        decoder : Json.Decode.Decoder (PageData Json.Decode.Value)
+        decoder =
+            Shared.PageData.decoder Json.Decode.value
     in
     Http.request
         { method = req.method
@@ -298,7 +333,7 @@ onInertiaHttp ({ url } as model) req =
         , body = req.body
         , timeout = Nothing
         , tracker = Nothing
-        , expect = Http.expectJson toHttpMsg (Shared.PageData.decoder req.decoder)
+        , expect = Http.expectJson toHttpMsg decoder
         }
 
 
