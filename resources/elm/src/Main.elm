@@ -93,7 +93,7 @@ type Msg
     | Resize Int Int
     | XsrfTokenRefreshed String
     | ScrollFinished
-    | TriggerPropsChanged (PageData Json.Decode.Value) Msg
+    | PropsChanged (PageData Json.Decode.Value) Msg
 
 
 type UrlRequestSource
@@ -158,7 +158,7 @@ update msg model =
                                 |> Task.perform (InertiaPageDataResponded url)
                 )
 
-        TriggerPropsChanged pageData innerMsg ->
+        PropsChanged pageData innerMsg ->
             let
                 context : Context
                 context =
@@ -321,7 +321,7 @@ onInertiaHttp ({ url } as model) req =
                     if model.pageData.component == newPageData.component then
                         case Json.Decode.decodeValue req.decoder newPageData.props of
                             Ok msg ->
-                                TriggerPropsChanged newPageData msg
+                                PropsChanged newPageData msg
 
                             Err jsonDecodeError ->
                                 req.onFailure (Http.BadBody (Json.Decode.errorToString jsonDecodeError))
