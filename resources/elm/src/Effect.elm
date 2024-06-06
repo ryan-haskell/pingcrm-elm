@@ -2,7 +2,7 @@ module Effect exposing
     ( Effect
     , none, batch
     , sendMsg, sendDelayedMsg
-    , get, post, delete
+    , get, post, put, delete
     , reportJsonDecodeError
     , pushUrl
     , map
@@ -16,7 +16,7 @@ module Effect exposing
 
 @docs sendMsg, sendDelayedMsg
 
-@docs get, post, delete
+@docs get, post, put, delete
 
 @docs reportJsonDecodeError
 
@@ -97,6 +97,37 @@ reportJsonDecodeError props =
 -- HTTP
 
 
+{-| Feels like this is only useful if you want to get data without changing the URL.
+
+Prefer `Effect.pushUrl` instead, which does normal inertia things!
+
+-}
+get :
+    { url : String
+    , decoder : Json.Decode.Decoder props
+    , onResponse : Result Http.Error props -> msg
+    }
+    -> Effect msg
+get options =
+    let
+        decoder : Json.Decode.Decoder msg
+        decoder =
+            options.decoder
+                |> Json.Decode.map (\props -> options.onResponse (Ok props))
+
+        onFailure : Http.Error -> msg
+        onFailure httpError =
+            options.onResponse (Err httpError)
+    in
+    InertiaHttp
+        { method = "GET"
+        , url = options.url
+        , body = Http.emptyBody
+        , decoder = decoder
+        , onFailure = onFailure
+        }
+
+
 post :
     { url : String
     , body : Json.Encode.Value
@@ -124,6 +155,33 @@ post options =
         }
 
 
+put :
+    { url : String
+    , body : Json.Encode.Value
+    , decoder : Json.Decode.Decoder props
+    , onResponse : Result Http.Error props -> msg
+    }
+    -> Effect msg
+put options =
+    let
+        decoder : Json.Decode.Decoder msg
+        decoder =
+            options.decoder
+                |> Json.Decode.map (\props -> options.onResponse (Ok props))
+
+        onFailure : Http.Error -> msg
+        onFailure httpError =
+            options.onResponse (Err httpError)
+    in
+    InertiaHttp
+        { method = "PUT"
+        , url = options.url
+        , body = Http.jsonBody options.body
+        , decoder = decoder
+        , onFailure = onFailure
+        }
+
+
 delete :
     { url : String
     , decoder : Json.Decode.Decoder props
@@ -143,37 +201,6 @@ delete options =
     in
     InertiaHttp
         { method = "DELETE"
-        , url = options.url
-        , body = Http.emptyBody
-        , decoder = decoder
-        , onFailure = onFailure
-        }
-
-
-{-| Feels like this is only useful if you want to get data without changing the URL.
-
-Prefer `Effect.pushUrl` instead, which does normal inertia things!
-
--}
-get :
-    { url : String
-    , decoder : Json.Decode.Decoder props
-    , onResponse : Result Http.Error props -> msg
-    }
-    -> Effect msg
-get options =
-    let
-        decoder : Json.Decode.Decoder msg
-        decoder =
-            options.decoder
-                |> Json.Decode.map (\props -> options.onResponse (Ok props))
-
-        onFailure : Http.Error -> msg
-        onFailure httpError =
-            options.onResponse (Err httpError)
-    in
-    InertiaHttp
-        { method = "GET"
         , url = options.url
         , body = Http.emptyBody
         , decoder = decoder
