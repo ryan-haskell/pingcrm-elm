@@ -19,7 +19,6 @@ import Components.Table
 import Context exposing (Context)
 import Domain.Auth exposing (Auth)
 import Domain.Flash exposing (Flash)
-import Domain.User exposing (User)
 import Effect exposing (Effect)
 import Html exposing (..)
 import Html.Attributes exposing (attribute, class, href)
@@ -43,7 +42,26 @@ decoder =
     Json.Decode.map3 Props
         (Json.Decode.field "auth" Domain.Auth.decoder)
         (Json.Decode.field "flash" Domain.Flash.decoder)
-        (Json.Decode.field "users" (Json.Decode.list Domain.User.decoder))
+        (Json.Decode.field "users" (Json.Decode.list userDecoder))
+
+
+type alias User =
+    { id : Int
+    , name : String
+    , email : String
+    , owner : Bool
+    , deleted_at : Maybe String
+    }
+
+
+userDecoder : Json.Decode.Decoder User
+userDecoder =
+    Json.Decode.map5 User
+        (Json.Decode.field "id" Json.Decode.int)
+        (Json.Decode.field "name" Json.Decode.string)
+        (Json.Decode.field "email" Json.Decode.string)
+        (Json.Decode.field "owner" Json.Decode.bool)
+        (Json.Decode.field "deleted_at" (Json.Decode.maybe Json.Decode.string))
 
 
 

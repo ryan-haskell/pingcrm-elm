@@ -21,7 +21,6 @@ import Components.Table
 import Context exposing (Context)
 import Domain.Auth exposing (Auth)
 import Domain.Flash exposing (Flash)
-import Domain.Organization exposing (Organization)
 import Effect exposing (Effect)
 import Extra.Url
 import Html exposing (..)
@@ -50,8 +49,31 @@ decoder =
     Json.Decode.map4 Props
         (Json.Decode.field "auth" Domain.Auth.decoder)
         (Json.Decode.field "flash" Domain.Flash.decoder)
-        (Json.Decode.field "organizations" (Json.Decode.field "data" (Json.Decode.list Domain.Organization.decoder)))
+        (Json.Decode.field "organizations" (Json.Decode.field "data" (Json.Decode.list organizationDecoder)))
         (Json.Decode.at [ "organizations", "last_page" ] Json.Decode.int)
+
+
+
+-- Organization
+
+
+type alias Organization =
+    { id : Int
+    , name : String
+    , city : Maybe String
+    , phone : Maybe String
+    , deletedAt : Maybe String
+    }
+
+
+organizationDecoder : Json.Decode.Decoder Organization
+organizationDecoder =
+    Json.Decode.map5 Organization
+        (Json.Decode.field "id" Json.Decode.int)
+        (Json.Decode.field "name" Json.Decode.string)
+        (Json.Decode.field "city" (Json.Decode.maybe Json.Decode.string))
+        (Json.Decode.field "phone" (Json.Decode.maybe Json.Decode.string))
+        (Json.Decode.field "deleted_at" (Json.Decode.maybe Json.Decode.string))
 
 
 

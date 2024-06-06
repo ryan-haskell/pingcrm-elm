@@ -18,7 +18,6 @@ import Browser exposing (Document)
 import Components.Table
 import Context exposing (Context)
 import Domain.Auth exposing (Auth)
-import Domain.Contact exposing (Contact)
 import Domain.Flash exposing (Flash)
 import Effect exposing (Effect)
 import Html exposing (..)
@@ -44,8 +43,29 @@ decoder =
     Json.Decode.map4 Props
         (Json.Decode.field "auth" Domain.Auth.decoder)
         (Json.Decode.field "flash" Domain.Flash.decoder)
-        (Json.Decode.field "contacts" (Json.Decode.field "data" (Json.Decode.list Domain.Contact.decoder)))
+        (Json.Decode.field "contacts" (Json.Decode.field "data" (Json.Decode.list contactDecoder)))
         (Json.Decode.at [ "contacts", "last_page" ] Json.Decode.int)
+
+
+type alias Contact =
+    { id : Int
+    , name : String
+    , organization : Maybe String
+    , city : Maybe String
+    , phone : Maybe String
+    , deletedAt : Maybe String
+    }
+
+
+contactDecoder : Json.Decode.Decoder Contact
+contactDecoder =
+    Json.Decode.map6 Contact
+        (Json.Decode.field "id" Json.Decode.int)
+        (Json.Decode.field "name" Json.Decode.string)
+        (Json.Decode.field "organization" (Json.Decode.maybe (Json.Decode.field "name" Json.Decode.string)))
+        (Json.Decode.field "city" (Json.Decode.maybe Json.Decode.string))
+        (Json.Decode.field "phone" (Json.Decode.maybe Json.Decode.string))
+        (Json.Decode.field "deleted_at" (Json.Decode.maybe Json.Decode.string))
 
 
 
