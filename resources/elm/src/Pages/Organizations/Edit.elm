@@ -155,10 +155,6 @@ init ctx props =
 
 onPropsChanged : Context -> Props -> Model -> ( Model, Effect Msg )
 onPropsChanged ctx props model =
-    let
-        _ =
-            Debug.log "onPropsChanged - org edit" props
-    in
     ( { model
         | errors = props.errors
         , sidebar = Layouts.Sidebar.withFlash props.flash model.sidebar

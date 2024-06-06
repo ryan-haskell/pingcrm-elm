@@ -253,7 +253,10 @@ update ctx props msg ({ errors } as model) =
             )
 
         CreateApiResponded (Err httpError) ->
-            ( { model | isSubmittingForm = False }
+            ( { model
+                | sidebar = Layouts.Sidebar.withFlashError (Extra.Http.toUserFriendlyMessage httpError) model.sidebar
+                , isSubmittingForm = False
+              }
             , Effect.none
             )
 

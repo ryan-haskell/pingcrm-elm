@@ -714,10 +714,6 @@ onPropsChangedPage :
     }
     -> ( Model, Effect Msg )
 onPropsChangedPage args =
-    let
-        _ =
-            Debug.log "onPropsChanged - pages" (Json.Encode.encode 0 args.pageData.props)
-    in
     case Json.Decode.decodeValue args.decoder args.pageData.props of
         Ok props ->
             args.onPropsChanged args.context props args.model
