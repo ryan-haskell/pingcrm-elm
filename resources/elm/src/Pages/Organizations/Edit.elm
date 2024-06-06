@@ -18,6 +18,7 @@ import Browser exposing (Document)
 import Components.Form
 import Components.Header
 import Components.RestoreBanner
+import Components.Table
 import Context exposing (Context)
 import Effect exposing (Effect)
 import Extra.Http
@@ -88,6 +89,7 @@ type alias Organization =
     , postalCode : Maybe String
     , region : Maybe String
     , deletedAt : Maybe String
+    , contacts : List Contact
     }
 
 
@@ -104,6 +106,24 @@ organizationDecoder =
         |> Extra.Json.Decode.optional "postal_code" Json.Decode.string
         |> Extra.Json.Decode.optional "region" Json.Decode.string
         |> Extra.Json.Decode.optional "deleted_at" Json.Decode.string
+        |> Extra.Json.Decode.required "contacts" (Json.Decode.list contactDecoder)
+
+
+type alias Contact =
+    { id : Int
+    , name : String
+    , phone : Maybe String
+    , city : Maybe String
+    }
+
+
+contactDecoder : Json.Decode.Decoder Contact
+contactDecoder =
+    Extra.Json.Decode.object Contact
+        |> Extra.Json.Decode.required "id" Json.Decode.int
+        |> Extra.Json.Decode.required "name" Json.Decode.string
+        |> Extra.Json.Decode.optional "phone" Json.Decode.string
+        |> Extra.Json.Decode.optional "city" Json.Decode.string
 
 
 
@@ -353,6 +373,7 @@ view ctx props model =
                 , onClick = ClickedRestore
                 }
             , viewEditForm props model
+            , viewContactsSection props model
             ]
         , overlays = []
         }
@@ -441,3 +462,27 @@ viewEditForm props model =
                 }
             ]
         }
+
+
+
+-- CONTACTS TABLE
+
+
+viewContactsSection : Props -> Model -> Html Msg
+viewContactsSection props model =
+    div []
+        [ h2 [ class "mt-12 text-2xl font-bold" ] [ text "Contacts" ]
+        , div [ class "mt-6" ]
+            [ Components.Table.view
+                { baseUrl = "contacts"
+                , toId = .id
+                , rows = props.organization.contacts
+                , columns =
+                    [ { name = "Name", toValue = .name }
+                    , { name = "City", toValue = .city >> Maybe.withDefault "" }
+                    , { name = "Phone", toValue = .phone >> Maybe.withDefault "" }
+                    ]
+                , noResultsLabel = "No contacts found."
+                }
+            ]
+        ]

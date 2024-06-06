@@ -17,6 +17,7 @@ module Components.Table.Paginated exposing
 
 import Components.Dropdown
 import Components.Icon
+import Components.Table
 import Context exposing (Context)
 import Effect exposing (Effect)
 import Extra.Url
@@ -240,95 +241,13 @@ viewTableData props =
             ]
 
     else
-        div [ class "bg-white rounded-md shadow overflow-x-auto" ]
-            [ table
-                [ class "w-full whitespace-nowrap" ]
-                [ thead [] [ viewTableHeaderRow props ]
-                , tbody [] (List.map (viewTableBodyRow props) props.rows)
-                ]
-            ]
-
-
-viewTableHeaderRow : Props data msg -> Html msg
-viewTableHeaderRow props =
-    let
-        lastColumnIndex : Int
-        lastColumnIndex =
-            List.length props.columns - 1
-
-        viewCell : Int -> String -> Html msg
-        viewCell index name =
-            th
-                [ class "pb-4 pt-6 px-6"
-                , Attr.colspan
-                    (if index == lastColumnIndex then
-                        2
-
-                     else
-                        1
-                    )
-                ]
-                [ text name ]
-    in
-    tr [ class "text-left font-bold" ]
-        (List.indexedMap viewCell (List.map .name props.columns))
-
-
-viewTableBodyRow : Props data msg -> data -> Html msg
-viewTableBodyRow props data =
-    let
-        editUrl : String
-        editUrl =
-            Url.Builder.absolute [ props.baseUrl, String.fromInt (props.toId data), "edit" ] []
-
-        viewCell : Int -> (data -> String) -> Html msg
-        viewCell index toValue =
-            if index == 0 then
-                viewFirstCell toValue
-
-            else
-                viewOtherCell toValue
-
-        viewFirstCell : (data -> String) -> Html msg
-        viewFirstCell toValue =
-            td [ class "border-t" ]
-                [ a
-                    [ class "flex items-center px-6 py-4 focus:text-indigo-500"
-                    , href editUrl
-                    ]
-                    [ text (toValue data) ]
-                ]
-
-        viewOtherCell : (data -> String) -> Html msg
-        viewOtherCell toValue =
-            td [ class "border-t" ]
-                [ a
-                    [ class "flex items-center px-6 py-4"
-                    , Attr.tabindex -1
-                    , href editUrl
-                    ]
-                    [ text (toValue data) ]
-                ]
-
-        viewLastCell : Html msg
-        viewLastCell =
-            td [ class "w-px border-t" ]
-                [ a
-                    [ class "flex items-center px-4"
-                    , Attr.tabindex -1
-                    , href editUrl
-                    ]
-                    [ Components.Icon.chevronRight ]
-                ]
-    in
-    tr [ class "hover:bg-gray-100 focus-within:bg-gray-100" ]
-        ((props.columns
-            |> List.map .toValue
-            |> List.indexedMap viewCell
-         )
-            ++ [ viewLastCell
-               ]
-        )
+        Components.Table.view
+            { baseUrl = props.baseUrl
+            , toId = props.toId
+            , rows = props.rows
+            , columns = props.columns
+            , noResultsLabel = "No results found."
+            }
 
 
 viewTableFooter : Props data msg -> Html msg
