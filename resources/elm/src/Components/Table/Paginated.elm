@@ -1,4 +1,4 @@
-module Components.Table exposing
+module Components.Table.Paginated exposing
     ( Model, init
     , Msg, update
     , view, viewOverlay

@@ -17,7 +17,7 @@ module Pages.Organizations exposing
 import Browser exposing (Document)
 import Components.Dropdown
 import Components.Icon
-import Components.Table
+import Components.Table.Paginated
 import Context exposing (Context)
 import Effect exposing (Effect)
 import Extra.Url
@@ -81,7 +81,7 @@ organizationDecoder =
 
 
 type alias Model =
-    { table : Components.Table.Model
+    { table : Components.Table.Paginated.Model
     , sidebar : Layouts.Sidebar.Model
     }
 
@@ -89,7 +89,7 @@ type alias Model =
 init : Context -> Props -> ( Model, Effect Msg )
 init ctx props =
     ( { sidebar = Layouts.Sidebar.init { flash = props.flash }
-      , table = Components.Table.init ctx
+      , table = Components.Table.Paginated.init ctx
       }
     , Effect.none
     )
@@ -108,7 +108,7 @@ onPropsChanged ctx props model =
 
 type Msg
     = Sidebar Layouts.Sidebar.Msg
-    | Table Components.Table.Msg
+    | Table Components.Table.Paginated.Msg
 
 
 update : Context -> Props -> Msg -> Model -> ( Model, Effect Msg )
@@ -123,7 +123,7 @@ update ctx props msg model =
                 }
 
         Table tableMsg ->
-            Components.Table.update
+            Components.Table.Paginated.update
                 { msg = tableMsg
                 , model = model.table
                 , toModel = \table -> { model | table = table }
@@ -152,7 +152,7 @@ view ctx props model =
         , user = props.auth.user
         , content =
             [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Organizations" ]
-            , Components.Table.view
+            , Components.Table.Paginated.view
                 { context = ctx
                 , model = model.table
                 , toMsg = Table
@@ -165,7 +165,7 @@ view ctx props model =
                 }
             ]
         , overlays =
-            [ Components.Table.viewOverlay
+            [ Components.Table.Paginated.viewOverlay
                 { context = ctx
                 , model = model.table
                 , toMsg = Table
@@ -175,7 +175,7 @@ view ctx props model =
         }
 
 
-columns : List (Components.Table.Column Organization)
+columns : List (Components.Table.Paginated.Column Organization)
 columns =
     [ { name = "Name", toValue = .name }
     , { name = "City", toValue = .city >> Maybe.withDefault "" }
