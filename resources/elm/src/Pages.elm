@@ -20,6 +20,7 @@ import Json.Decode
 import Json.Encode
 import Pages.Contacts
 import Pages.Contacts.Create
+import Pages.Contacts.Edit
 import Pages.Dashboard
 import Pages.Error404
 import Pages.Error500
@@ -44,6 +45,7 @@ type Model
     | Model_Organizations_Create { props : Pages.Organizations.Create.Props, model : Pages.Organizations.Create.Model }
     | Model_Organizations_Edit { props : Pages.Organizations.Edit.Props, model : Pages.Organizations.Edit.Model }
     | Model_Contacts_Create { props : Pages.Contacts.Create.Props, model : Pages.Contacts.Create.Model }
+    | Model_Contacts_Edit { props : Pages.Contacts.Edit.Props, model : Pages.Contacts.Edit.Model }
     | Model_Users_Create { props : Pages.Users.Create.Props, model : Pages.Users.Create.Model }
     | Model_Contacts { props : Pages.Contacts.Props, model : Pages.Contacts.Model }
     | Model_Users { props : Pages.Users.Props, model : Pages.Users.Model }
@@ -125,6 +127,16 @@ init context pageData =
                 , toMsg = Msg_Contacts_Create
                 }
 
+        "Contacts/Edit" ->
+            initPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Contacts.Edit.decoder
+                , init = Pages.Contacts.Edit.init
+                , toModel = Model_Contacts_Edit
+                , toMsg = Msg_Contacts_Edit
+                }
+
         "Users/Index" ->
             initPage
                 { context = context
@@ -174,9 +186,10 @@ type Msg
     | Msg_Organizations Pages.Organizations.Msg
     | Msg_Organizations_Create Pages.Organizations.Create.Msg
     | Msg_Organizations_Edit Pages.Organizations.Edit.Msg
-    | Msg_Contacts_Create Pages.Contacts.Create.Msg
     | Msg_Users_Create Pages.Users.Create.Msg
     | Msg_Contacts Pages.Contacts.Msg
+    | Msg_Contacts_Create Pages.Contacts.Create.Msg
+    | Msg_Contacts_Edit Pages.Contacts.Edit.Msg
     | Msg_Users Pages.Users.Msg
     | Msg_Reports Pages.Reports.Msg
     | Msg_Error404 Pages.Error404.Msg
@@ -227,6 +240,12 @@ update ctx pageData msg model =
                 |> Tuple.mapBoth
                     (\m -> Model_Contacts_Create { props = page.props, model = m })
                     (Effect.map Msg_Contacts_Create)
+
+        ( Msg_Contacts_Edit pageMsg, Model_Contacts_Edit page ) ->
+            Pages.Contacts.Edit.update ctx page.props pageMsg page.model
+                |> Tuple.mapBoth
+                    (\m -> Model_Contacts_Edit { props = page.props, model = m })
+                    (Effect.map Msg_Contacts_Edit)
 
         ( Msg_Users pageMsg, Model_Users page ) ->
             Pages.Users.update ctx page.props pageMsg page.model
@@ -344,6 +363,17 @@ onPropsChanged ctx pageData model =
                 , toMsg = Msg_Contacts_Create
                 }
 
+        Model_Contacts_Edit page ->
+            onPropsChangedPage
+                { context = ctx
+                , pageData = pageData
+                , model = page.model
+                , decoder = Pages.Contacts.Edit.decoder
+                , onPropsChanged = Pages.Contacts.Edit.onPropsChanged
+                , toModel = Model_Contacts_Edit
+                , toMsg = Msg_Contacts_Edit
+                }
+
         Model_Users page ->
             onPropsChangedPage
                 { context = ctx
@@ -415,6 +445,10 @@ subscriptions context pageData model =
             Pages.Contacts.Create.subscriptions context page.props page.model
                 |> Sub.map Msg_Contacts_Create
 
+        Model_Contacts_Edit page ->
+            Pages.Contacts.Edit.subscriptions context page.props page.model
+                |> Sub.map Msg_Contacts_Edit
+
         Model_Users page ->
             Pages.Users.subscriptions context page.props page.model
                 |> Sub.map Msg_Users
@@ -470,6 +504,10 @@ view context pageData model =
         Model_Contacts_Create page ->
             Pages.Contacts.Create.view context page.props page.model
                 |> Extra.Document.map Msg_Contacts_Create
+
+        Model_Contacts_Edit page ->
+            Pages.Contacts.Edit.view context page.props page.model
+                |> Extra.Document.map Msg_Contacts_Edit
 
         Model_Users page ->
             Pages.Users.view context page.props page.model
