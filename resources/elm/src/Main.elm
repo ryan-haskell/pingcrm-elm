@@ -93,6 +93,7 @@ type Msg
     | Resize Int Int
     | XsrfTokenRefreshed String
     | ScrollFinished
+    | TriggerPropsChanged (PageData Json.Decode.Value) Msg
 
 
 type UrlRequestSource
@@ -157,6 +158,25 @@ update msg model =
                                 |> Task.perform (InertiaPageDataResponded url)
                 )
 
+        TriggerPropsChanged pageData innerMsg ->
+            let
+                context : Context
+                context =
+                    { url = model.url
+                    , isMobile = model.isMobile
+                    }
+
+                ( page, pageCmd ) =
+                    Pages.onPropsChanged context pageData model.page
+            in
+            ( { model | pageData = pageData, page = page }
+            , Cmd.batch
+                [ toCmd model (Effect.map Page pageCmd)
+                , Task.succeed innerMsg
+                    |> Task.perform identity
+                ]
+            )
+
         InertiaPageDataResponded url (Ok pageData) ->
             let
                 context : Context
@@ -196,7 +216,7 @@ update msg model =
                     , isMobile = model.isMobile
                     }
             in
-            Pages.update context pageMsg model.page
+            Pages.update context model.pageData pageMsg model.page
                 |> Tuple.mapBoth
                     (\page -> { model | page = page })
                     (Effect.map Page >> toCmd model)
@@ -231,7 +251,7 @@ subscriptions model =
             }
     in
     Sub.batch
-        [ Pages.subscriptions context model.page
+        [ Pages.subscriptions context model.pageData model.page
             |> Sub.map Page
         , Browser.Events.onResize Resize
         , Interop.onXsrfTokenRefreshed XsrfTokenRefreshed
@@ -251,7 +271,7 @@ view model =
             , isMobile = model.isMobile
             }
     in
-    Pages.view context model.page
+    Pages.view context model.pageData model.page
         |> Extra.Document.map Page
 
 
@@ -301,7 +321,7 @@ onInertiaHttp ({ url } as model) req =
                     if model.pageData.component == newPageData.component then
                         case Json.Decode.decodeValue req.decoder newPageData.props of
                             Ok msg ->
-                                msg
+                                TriggerPropsChanged newPageData msg
 
                             Err jsonDecodeError ->
                                 req.onFailure (Http.BadBody (Json.Decode.errorToString jsonDecodeError))

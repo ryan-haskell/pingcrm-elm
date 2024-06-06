@@ -110,8 +110,7 @@ organizationDecoder =
 
 
 type alias Model =
-    { props : Props
-    , sidebar : Layouts.Sidebar.Model
+    { sidebar : Layouts.Sidebar.Model
     , isSubmittingForm : Bool
     , name : String
     , email : String
@@ -138,8 +137,7 @@ type Field
 
 init : Context -> Props -> ( Model, Effect Msg )
 init ctx props =
-    ( { props = props
-      , sidebar = Layouts.Sidebar.init { flash = props.flash }
+    ( { sidebar = Layouts.Sidebar.init { flash = props.flash }
       , isSubmittingForm = False
       , name = props.organization.name
       , email = props.organization.email |> Maybe.withDefault ""
@@ -155,17 +153,16 @@ init ctx props =
     )
 
 
-{-| TODO: I think it's becoming annoying to track the props in the model.
-
-Should this be passed in with the context?
-
-I still think it makes sense to have the `onPropsChanged` hook here,
-so we can update relevant parts of the model.
-
--}
 onPropsChanged : Context -> Props -> Model -> ( Model, Effect Msg )
 onPropsChanged ctx props model =
-    ( { model | props = props, errors = props.errors }
+    let
+        _ =
+            Debug.log "onPropsChanged - org edit" props
+    in
+    ( { model
+        | errors = props.errors
+        , sidebar = Layouts.Sidebar.withFlash props.flash model.sidebar
+      }
     , Effect.none
     )
 
@@ -182,8 +179,8 @@ type Msg
     | EditApiResponded (Result Http.Error Props)
 
 
-update : Context -> Msg -> Model -> ( Model, Effect Msg )
-update ctx msg ({ errors } as model) =
+update : Context -> Props -> Msg -> Model -> ( Model, Effect Msg )
+update ctx props msg ({ errors } as model) =
     case msg of
         Sidebar sidebarMsg ->
             Layouts.Sidebar.update
@@ -247,7 +244,7 @@ update ctx msg ({ errors } as model) =
                 { url =
                     Url.Builder.absolute
                         [ "organizations"
-                        , String.fromInt model.props.organization.id
+                        , String.fromInt props.organization.id
                         ]
                         []
                 , body = body
@@ -262,7 +259,7 @@ update ctx msg ({ errors } as model) =
                 { url =
                     Url.Builder.absolute
                         [ "organizations"
-                        , String.fromInt model.props.organization.id
+                        , String.fromInt props.organization.id
                         ]
                         []
                 , decoder = decoder
@@ -270,23 +267,14 @@ update ctx msg ({ errors } as model) =
                 }
             )
 
-        EditApiResponded (Ok props) ->
-            ( { model
-                | props = props
-                , errors = props.errors
-                , sidebar =
-                    model.sidebar
-                        |> Layouts.Sidebar.withFlash props.flash
-                , isSubmittingForm = False
-              }
+        EditApiResponded (Ok res) ->
+            ( { model | isSubmittingForm = False }
             , Effect.none
             )
 
         EditApiResponded (Err httpError) ->
             ( { model
-                | sidebar =
-                    model.sidebar
-                        |> Layouts.Sidebar.withFlashError (Extra.Http.toUserFriendlyMessage httpError)
+                | sidebar = Layouts.Sidebar.withFlashError (Extra.Http.toUserFriendlyMessage httpError) model.sidebar
                 , isSubmittingForm = False
               }
             , Effect.none
@@ -302,8 +290,8 @@ showFormError reason props =
 -- SUBSCRIPTIONS
 
 
-subscriptions : Context -> Model -> Sub Msg
-subscriptions ctx model =
+subscriptions : Context -> Props -> Model -> Sub Msg
+subscriptions ctx props model =
     Sub.batch
         [ Layouts.Sidebar.subscriptions { model = model.sidebar, toMsg = Sidebar }
         ]
@@ -313,15 +301,14 @@ subscriptions ctx model =
 -- VIEW
 
 
-view : Context -> Model -> Document Msg
-view ctx model =
+view : Context -> Props -> Model -> Document Msg
+view ctx props model =
     Layouts.Sidebar.view
         { model = model.sidebar
-        , flash = model.props.flash
         , toMsg = Sidebar
         , context = ctx
-        , title = model.props.organization.name
-        , user = model.props.auth.user
+        , title = props.organization.name
+        , user = props.auth.user
         , content =
             [ Components.Header.view
                 { label = "Organizations"

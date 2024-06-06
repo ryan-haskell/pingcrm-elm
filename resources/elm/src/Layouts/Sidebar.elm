@@ -196,7 +196,6 @@ onEscDecoder =
 
 view :
     { model : Model
-    , flash : Flash
     , toMsg : Msg -> msg
     , context : { context | url : Url, isMobile : Bool }
     , title : String

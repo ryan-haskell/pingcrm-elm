@@ -95,8 +95,7 @@ organizationDecoder =
 
 
 type alias Model =
-    { props : Props
-    , sidebar : Layouts.Sidebar.Model
+    { sidebar : Layouts.Sidebar.Model
     , isSubmittingForm : Bool
     , firstName : String
     , lastName : String
@@ -127,8 +126,7 @@ type Field
 
 init : Context -> Props -> ( Model, Effect Msg )
 init ctx props =
-    ( { props = props
-      , sidebar = Layouts.Sidebar.init { flash = props.flash }
+    ( { sidebar = Layouts.Sidebar.init { flash = props.flash }
       , isSubmittingForm = False
       , firstName = ""
       , lastName = ""
@@ -148,7 +146,10 @@ init ctx props =
 
 onPropsChanged : Context -> Props -> Model -> ( Model, Effect Msg )
 onPropsChanged ctx props model =
-    ( { model | props = props, errors = props.errors }
+    ( { model
+        | sidebar = Layouts.Sidebar.withFlash props.flash model.sidebar
+        , errors = props.errors
+      }
     , Effect.none
     )
 
@@ -164,8 +165,8 @@ type Msg
     | CreateApiResponded (Result Http.Error Props)
 
 
-update : Context -> Msg -> Model -> ( Model, Effect Msg )
-update ctx msg ({ errors, props } as model) =
+update : Context -> Props -> Msg -> Model -> ( Model, Effect Msg )
+update ctx props msg ({ errors } as model) =
     case msg of
         Sidebar sidebarMsg ->
             Layouts.Sidebar.update
@@ -246,45 +247,23 @@ update ctx msg ({ errors, props } as model) =
                 }
             )
 
-        CreateApiResponded (Ok common) ->
-            let
-                newProps : Props
-                newProps =
-                    { props | flash = common.flash, errors = common.errors }
-            in
-            ( { model
-                | props =
-                    if hasAnError newProps.errors then
-                        newProps |> showFormError "Could not create a new contact."
-
-                    else
-                        newProps
-                , errors = common.errors
-                , isSubmittingForm = False
-              }
+        CreateApiResponded (Ok res) ->
+            ( { model | isSubmittingForm = False }
             , Effect.none
             )
 
         CreateApiResponded (Err httpError) ->
-            ( { model
-                | props = model.props |> showFormError (Extra.Http.toUserFriendlyMessage httpError)
-                , isSubmittingForm = False
-              }
+            ( { model | isSubmittingForm = False }
             , Effect.none
             )
-
-
-showFormError : String -> Props -> Props
-showFormError reason props =
-    { props | flash = { success = Nothing, error = Just reason } }
 
 
 
 -- SUBSCRIPTIONS
 
 
-subscriptions : Context -> Model -> Sub Msg
-subscriptions ctx model =
+subscriptions : Context -> Props -> Model -> Sub Msg
+subscriptions ctx props model =
     Sub.batch
         [ Layouts.Sidebar.subscriptions { model = model.sidebar, toMsg = Sidebar }
         ]
@@ -294,22 +273,21 @@ subscriptions ctx model =
 -- VIEW
 
 
-view : Context -> Model -> Document Msg
-view ctx model =
+view : Context -> Props -> Model -> Document Msg
+view ctx props model =
     Layouts.Sidebar.view
         { model = model.sidebar
-        , flash = model.props.flash
         , toMsg = Sidebar
         , context = ctx
         , title = "Create Contact"
-        , user = model.props.auth.user
+        , user = props.auth.user
         , content =
             [ Components.Header.view
                 { label = "Contacts"
                 , url = "/contacts"
                 , content = "Create"
                 }
-            , viewCreateForm model
+            , viewCreateForm props model
             ]
         , overlays = []
         }
@@ -319,8 +297,8 @@ view ctx model =
 -- CREATE FORM
 
 
-viewCreateForm : Model -> Html Msg
-viewCreateForm model =
+viewCreateForm : Props -> Model -> Html Msg
+viewCreateForm props model =
     Components.Form.create
         { onSubmit = SubmittedForm
         , noun = "Contact"
@@ -353,7 +331,7 @@ viewCreateForm model =
                     ( "", "" )
                         :: List.map
                             (\org -> ( String.fromInt org.id, org.name ))
-                            model.props.organizations
+                            props.organizations
                 }
             , Components.Form.text
                 { isDisabled = model.isSubmittingForm

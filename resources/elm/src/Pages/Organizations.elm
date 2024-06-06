@@ -81,16 +81,14 @@ organizationDecoder =
 
 
 type alias Model =
-    { props : Props
-    , table : Components.Table.Model
+    { table : Components.Table.Model
     , sidebar : Layouts.Sidebar.Model
     }
 
 
 init : Context -> Props -> ( Model, Effect Msg )
 init ctx props =
-    ( { props = props
-      , sidebar = Layouts.Sidebar.init { flash = props.flash }
+    ( { sidebar = Layouts.Sidebar.init { flash = props.flash }
       , table = Components.Table.init ctx
       }
     , Effect.none
@@ -99,7 +97,7 @@ init ctx props =
 
 onPropsChanged : Context -> Props -> Model -> ( Model, Effect Msg )
 onPropsChanged ctx props model =
-    ( { model | props = props }
+    ( model
     , Effect.none
     )
 
@@ -113,8 +111,8 @@ type Msg
     | Table Components.Table.Msg
 
 
-update : Context -> Msg -> Model -> ( Model, Effect Msg )
-update ctx msg model =
+update : Context -> Props -> Msg -> Model -> ( Model, Effect Msg )
+update ctx props msg model =
     case msg of
         Sidebar sidebarMsg ->
             Layouts.Sidebar.update
@@ -133,8 +131,8 @@ update ctx msg model =
                 }
 
 
-subscriptions : Context -> Model -> Sub Msg
-subscriptions ctx model =
+subscriptions : Context -> Props -> Model -> Sub Msg
+subscriptions ctx props model =
     Sub.batch
         [ Layouts.Sidebar.subscriptions { model = model.sidebar, toMsg = Sidebar }
         ]
@@ -144,15 +142,14 @@ subscriptions ctx model =
 -- VIEW
 
 
-view : Context -> Model -> Document Msg
-view ctx model =
+view : Context -> Props -> Model -> Document Msg
+view ctx props model =
     Layouts.Sidebar.view
         { model = model.sidebar
-        , flash = model.props.flash
         , toMsg = Sidebar
         , context = ctx
         , title = "Organizations"
-        , user = model.props.auth.user
+        , user = props.auth.user
         , content =
             [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Organizations" ]
             , Components.Table.view
@@ -163,8 +160,8 @@ view ctx model =
                 , baseUrl = "organizations"
                 , toId = .id
                 , columns = columns
-                , rows = model.props.organizations
-                , lastPage = model.props.lastPage
+                , rows = props.organizations
+                , lastPage = props.lastPage
                 }
             ]
         , overlays =

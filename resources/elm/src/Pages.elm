@@ -17,6 +17,7 @@ import Effect exposing (Effect)
 import Extra.Document exposing (Document)
 import Html exposing (Html)
 import Json.Decode
+import Json.Encode
 import Pages.Contacts
 import Pages.Contacts.Create
 import Pages.Dashboard
@@ -182,68 +183,128 @@ type Msg
     | Msg_Error500 Pages.Error500.Msg
 
 
-update : Context -> Msg -> Model -> ( Model, Effect Msg )
-update ctx msg model =
+update : Context -> PageData Json.Decode.Value -> Msg -> Model -> ( Model, Effect Msg )
+update ctx pageData msg model =
     case ( msg, model ) of
         ( Msg_Login pageMsg, Model_Login pageModel ) ->
-            Pages.Login.update ctx pageMsg pageModel
-                |> Tuple.mapBoth
-                    Model_Login
-                    (Effect.map Msg_Login)
+            updatePage
+                { context = ctx
+                , pageData = pageData
+                , decoder = Pages.Login.decoder
+                , update = Pages.Login.update
+                , msg = pageMsg
+                , model = pageModel
+                , toModel = Model_Login
+                , toMsg = Msg_Login
+                }
 
         ( Msg_Dashboard pageMsg, Model_Dashboard pageModel ) ->
-            Pages.Dashboard.update ctx pageMsg pageModel
-                |> Tuple.mapBoth
-                    Model_Dashboard
-                    (Effect.map Msg_Dashboard)
+            updatePage
+                { context = ctx
+                , pageData = pageData
+                , decoder = Pages.Dashboard.decoder
+                , update = Pages.Dashboard.update
+                , msg = pageMsg
+                , model = pageModel
+                , toModel = Model_Dashboard
+                , toMsg = Msg_Dashboard
+                }
 
         ( Msg_Organizations pageMsg, Model_Organizations pageModel ) ->
-            Pages.Organizations.update ctx pageMsg pageModel
-                |> Tuple.mapBoth
-                    Model_Organizations
-                    (Effect.map Msg_Organizations)
+            updatePage
+                { context = ctx
+                , pageData = pageData
+                , decoder = Pages.Organizations.decoder
+                , update = Pages.Organizations.update
+                , msg = pageMsg
+                , model = pageModel
+                , toModel = Model_Organizations
+                , toMsg = Msg_Organizations
+                }
 
         ( Msg_Organizations_Create pageMsg, Model_Organizations_Create pageModel ) ->
-            Pages.Organizations.Create.update ctx pageMsg pageModel
-                |> Tuple.mapBoth
-                    Model_Organizations_Create
-                    (Effect.map Msg_Organizations_Create)
+            updatePage
+                { context = ctx
+                , pageData = pageData
+                , decoder = Pages.Organizations.Create.decoder
+                , update = Pages.Organizations.Create.update
+                , msg = pageMsg
+                , model = pageModel
+                , toModel = Model_Organizations_Create
+                , toMsg = Msg_Organizations_Create
+                }
 
         ( Msg_Organizations_Edit pageMsg, Model_Organizations_Edit pageModel ) ->
-            Pages.Organizations.Edit.update ctx pageMsg pageModel
-                |> Tuple.mapBoth
-                    Model_Organizations_Edit
-                    (Effect.map Msg_Organizations_Edit)
+            updatePage
+                { context = ctx
+                , pageData = pageData
+                , decoder = Pages.Organizations.Edit.decoder
+                , update = Pages.Organizations.Edit.update
+                , msg = pageMsg
+                , model = pageModel
+                , toModel = Model_Organizations_Edit
+                , toMsg = Msg_Organizations_Edit
+                }
 
         ( Msg_Contacts pageMsg, Model_Contacts pageModel ) ->
-            Pages.Contacts.update ctx pageMsg pageModel
-                |> Tuple.mapBoth
-                    Model_Contacts
-                    (Effect.map Msg_Contacts)
+            updatePage
+                { context = ctx
+                , pageData = pageData
+                , decoder = Pages.Contacts.decoder
+                , update = Pages.Contacts.update
+                , msg = pageMsg
+                , model = pageModel
+                , toModel = Model_Contacts
+                , toMsg = Msg_Contacts
+                }
 
         ( Msg_Contacts_Create pageMsg, Model_Contacts_Create pageModel ) ->
-            Pages.Contacts.Create.update ctx pageMsg pageModel
-                |> Tuple.mapBoth
-                    Model_Contacts_Create
-                    (Effect.map Msg_Contacts_Create)
+            updatePage
+                { context = ctx
+                , pageData = pageData
+                , decoder = Pages.Contacts.Create.decoder
+                , update = Pages.Contacts.Create.update
+                , msg = pageMsg
+                , model = pageModel
+                , toModel = Model_Contacts_Create
+                , toMsg = Msg_Contacts_Create
+                }
 
         ( Msg_Users pageMsg, Model_Users pageModel ) ->
-            Pages.Users.update ctx pageMsg pageModel
-                |> Tuple.mapBoth
-                    Model_Users
-                    (Effect.map Msg_Users)
+            updatePage
+                { context = ctx
+                , pageData = pageData
+                , decoder = Pages.Users.decoder
+                , update = Pages.Users.update
+                , msg = pageMsg
+                , model = pageModel
+                , toModel = Model_Users
+                , toMsg = Msg_Users
+                }
 
         ( Msg_Users_Create pageMsg, Model_Users_Create pageModel ) ->
-            Pages.Users.Create.update ctx pageMsg pageModel
-                |> Tuple.mapBoth
-                    Model_Users_Create
-                    (Effect.map Msg_Users_Create)
+            updatePage
+                { context = ctx
+                , pageData = pageData
+                , decoder = Pages.Users.Create.decoder
+                , update = Pages.Users.Create.update
+                , msg = pageMsg
+                , model = pageModel
+                , toModel = Model_Users_Create
+                , toMsg = Msg_Users_Create
+                }
 
         ( Msg_Reports pageMsg, Model_Reports pageModel ) ->
-            Pages.Reports.update ctx pageMsg pageModel
-                |> Tuple.mapBoth
-                    Model_Reports
-                    (Effect.map Msg_Reports)
+            updatePage
+                { context = ctx
+                , pageData = pageData
+                , decoder = Pages.Reports.decoder
+                , update = Pages.Reports.update
+                , msg = pageMsg
+                , model = pageModel
+                , toModel = Model_Reports
+                , toMsg = Msg_Reports
+                }
 
         ( Msg_Error404 pageMsg, Model_Error404 pageModel ) ->
             Pages.Error404.update ctx pageMsg pageModel
@@ -383,48 +444,108 @@ onPropsChanged ctx pageData model =
             ( model, Effect.none )
 
 
-subscriptions : Context -> Model -> Sub Msg
-subscriptions context model =
+subscriptions : Context -> PageData Json.Decode.Value -> Model -> Sub Msg
+subscriptions context pageData model =
     case model of
         Model_Login pageModel ->
-            Pages.Login.subscriptions context pageModel
-                |> Sub.map Msg_Login
+            subscriptionsPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Login.decoder
+                , subscriptions = Pages.Login.subscriptions
+                , model = pageModel
+                , toMsg = Msg_Login
+                }
 
         Model_Dashboard pageModel ->
-            Pages.Dashboard.subscriptions context pageModel
-                |> Sub.map Msg_Dashboard
+            subscriptionsPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Dashboard.decoder
+                , subscriptions = Pages.Dashboard.subscriptions
+                , model = pageModel
+                , toMsg = Msg_Dashboard
+                }
 
         Model_Organizations pageModel ->
-            Pages.Organizations.subscriptions context pageModel
-                |> Sub.map Msg_Organizations
+            subscriptionsPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Organizations.decoder
+                , subscriptions = Pages.Organizations.subscriptions
+                , model = pageModel
+                , toMsg = Msg_Organizations
+                }
 
         Model_Organizations_Create pageModel ->
-            Pages.Organizations.Create.subscriptions context pageModel
-                |> Sub.map Msg_Organizations_Create
+            subscriptionsPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Organizations.Create.decoder
+                , subscriptions = Pages.Organizations.Create.subscriptions
+                , model = pageModel
+                , toMsg = Msg_Organizations_Create
+                }
 
         Model_Organizations_Edit pageModel ->
-            Pages.Organizations.Edit.subscriptions context pageModel
-                |> Sub.map Msg_Organizations_Edit
+            subscriptionsPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Organizations.Edit.decoder
+                , subscriptions = Pages.Organizations.Edit.subscriptions
+                , model = pageModel
+                , toMsg = Msg_Organizations_Edit
+                }
 
         Model_Contacts pageModel ->
-            Pages.Contacts.subscriptions context pageModel
-                |> Sub.map Msg_Contacts
+            subscriptionsPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Contacts.decoder
+                , subscriptions = Pages.Contacts.subscriptions
+                , model = pageModel
+                , toMsg = Msg_Contacts
+                }
 
         Model_Contacts_Create pageModel ->
-            Pages.Contacts.Create.subscriptions context pageModel
-                |> Sub.map Msg_Contacts_Create
+            subscriptionsPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Contacts.Create.decoder
+                , subscriptions = Pages.Contacts.Create.subscriptions
+                , model = pageModel
+                , toMsg = Msg_Contacts_Create
+                }
 
         Model_Users pageModel ->
-            Pages.Users.subscriptions context pageModel
-                |> Sub.map Msg_Users
+            subscriptionsPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Users.decoder
+                , subscriptions = Pages.Users.subscriptions
+                , model = pageModel
+                , toMsg = Msg_Users
+                }
 
         Model_Users_Create pageModel ->
-            Pages.Users.Create.subscriptions context pageModel
-                |> Sub.map Msg_Users_Create
+            subscriptionsPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Users.Create.decoder
+                , subscriptions = Pages.Users.Create.subscriptions
+                , model = pageModel
+                , toMsg = Msg_Users_Create
+                }
 
         Model_Reports pageModel ->
-            Pages.Reports.subscriptions context pageModel
-                |> Sub.map Msg_Reports
+            subscriptionsPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Reports.decoder
+                , subscriptions = Pages.Reports.subscriptions
+                , model = pageModel
+                , toMsg = Msg_Reports
+                }
 
         Model_Error404 pageModel ->
             Pages.Error404.subscriptions context pageModel
@@ -439,48 +560,108 @@ subscriptions context model =
 -- VIEW
 
 
-view : Context -> Model -> Document Msg
-view context model =
+view : Context -> PageData Json.Decode.Value -> Model -> Document Msg
+view context pageData model =
     case model of
         Model_Login pageModel ->
-            Pages.Login.view context pageModel
-                |> Extra.Document.map Msg_Login
+            viewPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Login.decoder
+                , view = Pages.Login.view
+                , model = pageModel
+                , toMsg = Msg_Login
+                }
 
         Model_Dashboard pageModel ->
-            Pages.Dashboard.view context pageModel
-                |> Extra.Document.map Msg_Dashboard
+            viewPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Dashboard.decoder
+                , view = Pages.Dashboard.view
+                , model = pageModel
+                , toMsg = Msg_Dashboard
+                }
 
         Model_Organizations pageModel ->
-            Pages.Organizations.view context pageModel
-                |> Extra.Document.map Msg_Organizations
+            viewPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Organizations.decoder
+                , view = Pages.Organizations.view
+                , model = pageModel
+                , toMsg = Msg_Organizations
+                }
 
         Model_Organizations_Create pageModel ->
-            Pages.Organizations.Create.view context pageModel
-                |> Extra.Document.map Msg_Organizations_Create
+            viewPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Organizations.Create.decoder
+                , view = Pages.Organizations.Create.view
+                , model = pageModel
+                , toMsg = Msg_Organizations_Create
+                }
 
         Model_Organizations_Edit pageModel ->
-            Pages.Organizations.Edit.view context pageModel
-                |> Extra.Document.map Msg_Organizations_Edit
+            viewPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Organizations.Edit.decoder
+                , view = Pages.Organizations.Edit.view
+                , model = pageModel
+                , toMsg = Msg_Organizations_Edit
+                }
 
         Model_Contacts pageModel ->
-            Pages.Contacts.view context pageModel
-                |> Extra.Document.map Msg_Contacts
+            viewPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Contacts.decoder
+                , view = Pages.Contacts.view
+                , model = pageModel
+                , toMsg = Msg_Contacts
+                }
 
         Model_Contacts_Create pageModel ->
-            Pages.Contacts.Create.view context pageModel
-                |> Extra.Document.map Msg_Contacts_Create
+            viewPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Contacts.Create.decoder
+                , view = Pages.Contacts.Create.view
+                , model = pageModel
+                , toMsg = Msg_Contacts_Create
+                }
 
         Model_Users pageModel ->
-            Pages.Users.view context pageModel
-                |> Extra.Document.map Msg_Users
+            viewPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Users.decoder
+                , view = Pages.Users.view
+                , model = pageModel
+                , toMsg = Msg_Users
+                }
 
         Model_Users_Create pageModel ->
-            Pages.Users.Create.view context pageModel
-                |> Extra.Document.map Msg_Users_Create
+            viewPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Users.Create.decoder
+                , view = Pages.Users.Create.view
+                , model = pageModel
+                , toMsg = Msg_Users_Create
+                }
 
         Model_Reports pageModel ->
-            Pages.Reports.view context pageModel
-                |> Extra.Document.map Msg_Reports
+            viewPage
+                { context = context
+                , pageData = pageData
+                , decoder = Pages.Reports.decoder
+                , view = Pages.Reports.view
+                , model = pageModel
+                , toMsg = Msg_Reports
+                }
 
         Model_Error404 pageModel ->
             Pages.Error404.view context pageModel
@@ -533,6 +714,10 @@ onPropsChangedPage :
     }
     -> ( Model, Effect Msg )
 onPropsChangedPage args =
+    let
+        _ =
+            Debug.log "onPropsChanged - pages" (Json.Encode.encode 0 args.pageData.props)
+    in
     case Json.Decode.decodeValue args.decoder args.pageData.props of
         Ok props ->
             args.onPropsChanged args.context props args.model
@@ -543,6 +728,69 @@ onPropsChangedPage args =
                 { error = jsonDecodeError
                 , page = args.pageData.component
                 }
-                |> Tuple.mapBoth
-                    Model_Error500
-                    (Effect.map Msg_Error500)
+                |> Tuple.mapBoth Model_Error500 (Effect.map Msg_Error500)
+
+
+updatePage :
+    { context : Context
+    , pageData : PageData Json.Decode.Value
+    , decoder : Json.Decode.Decoder props
+    , update : Context -> props -> msg -> model -> ( model, Effect msg )
+    , msg : msg
+    , model : model
+    , toModel : model -> Model
+    , toMsg : msg -> Msg
+    }
+    -> ( Model, Effect Msg )
+updatePage args =
+    case Json.Decode.decodeValue args.decoder args.pageData.props of
+        Ok props ->
+            args.update args.context props args.msg args.model
+                |> Tuple.mapBoth args.toModel (Effect.map args.toMsg)
+
+        Err jsonDecodeError ->
+            Pages.Error500.init args.context
+                { error = jsonDecodeError
+                , page = args.pageData.component
+                }
+                |> Tuple.mapBoth Model_Error500 (Effect.map Msg_Error500)
+
+
+subscriptionsPage :
+    { context : Context
+    , pageData : PageData Json.Decode.Value
+    , decoder : Json.Decode.Decoder props
+    , subscriptions : Context -> props -> model -> Sub msg
+    , model : model
+    , toMsg : msg -> Msg
+    }
+    -> Sub Msg
+subscriptionsPage args =
+    case Json.Decode.decodeValue args.decoder args.pageData.props of
+        Ok props ->
+            args.subscriptions args.context props args.model
+                |> Sub.map args.toMsg
+
+        Err jsonDecodeError ->
+            Sub.none
+
+
+viewPage :
+    { context : Context
+    , pageData : PageData Json.Decode.Value
+    , decoder : Json.Decode.Decoder props
+    , view : Context -> props -> model -> Document msg
+    , model : model
+    , toMsg : msg -> Msg
+    }
+    -> Document Msg
+viewPage args =
+    case Json.Decode.decodeValue args.decoder args.pageData.props of
+        Ok props ->
+            args.view args.context props args.model
+                |> Extra.Document.map args.toMsg
+
+        Err jsonDecodeError ->
+            -- TODO: Is this the best thing to render here?
+            -- Is it possible to get in this state?
+            Extra.Document.none

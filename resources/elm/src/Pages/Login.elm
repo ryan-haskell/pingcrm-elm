@@ -96,8 +96,8 @@ loginResponseDecoder =
         (Json.Decode.maybe (Json.Decode.at [ "errors", "email" ] Json.Decode.string))
 
 
-update : Context -> Msg -> Model -> ( Model, Effect Msg )
-update ctx msg model =
+update : Context -> Props -> Msg -> Model -> ( Model, Effect Msg )
+update ctx props msg model =
     case msg of
         EmailChanged value ->
             ( { model | email = value, emailError = Nothing }
@@ -144,8 +144,8 @@ update ctx msg model =
             )
 
 
-subscriptions : Context -> Model -> Sub Msg
-subscriptions ctx model =
+subscriptions : Context -> Props -> Model -> Sub Msg
+subscriptions ctx props model =
     Sub.none
 
 
@@ -153,8 +153,8 @@ subscriptions ctx model =
 -- VIEW
 
 
-view : Context -> Model -> Document Msg
-view ctx model =
+view : Context -> Props -> Model -> Document Msg
+view ctx props model =
     { title = "Login - Ping CRM"
     , body =
         [ div [ class "flex items-center justify-center p-6 min-h-screen bg-indigo-800" ]

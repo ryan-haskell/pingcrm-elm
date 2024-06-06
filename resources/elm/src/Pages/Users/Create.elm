@@ -80,8 +80,7 @@ hasAnError errors =
 
 
 type alias Model =
-    { props : Props
-    , sidebar : Layouts.Sidebar.Model
+    { sidebar : Layouts.Sidebar.Model
     , isSubmittingForm : Bool
     , firstName : String
     , lastName : String
@@ -102,8 +101,7 @@ type Field
 
 init : Context -> Props -> ( Model, Effect Msg )
 init ctx props =
-    ( { props = props
-      , sidebar = Layouts.Sidebar.init { flash = props.flash }
+    ( { sidebar = Layouts.Sidebar.init { flash = props.flash }
       , isSubmittingForm = False
       , firstName = ""
       , lastName = ""
@@ -118,7 +116,10 @@ init ctx props =
 
 onPropsChanged : Context -> Props -> Model -> ( Model, Effect Msg )
 onPropsChanged ctx props model =
-    ( { model | props = props, errors = props.errors }
+    ( { model
+        | sidebar = Layouts.Sidebar.withFlash props.flash model.sidebar
+        , errors = props.errors
+      }
     , Effect.none
     )
 
@@ -134,8 +135,8 @@ type Msg
     | CreateApiResponded (Result Http.Error Props)
 
 
-update : Context -> Msg -> Model -> ( Model, Effect Msg )
-update ctx msg ({ errors } as model) =
+update : Context -> Props -> Msg -> Model -> ( Model, Effect Msg )
+update ctx props msg ({ errors } as model) =
     case msg of
         Sidebar sidebarMsg ->
             Layouts.Sidebar.update
@@ -199,23 +200,14 @@ update ctx msg ({ errors } as model) =
                 }
             )
 
-        CreateApiResponded (Ok props) ->
-            ( { model
-                | props =
-                    if hasAnError props.errors then
-                        props |> showFormError "Could not create a new organization."
-
-                    else
-                        props
-                , errors = props.errors
-                , isSubmittingForm = False
-              }
+        CreateApiResponded (Ok res) ->
+            ( { model | isSubmittingForm = False }
             , Effect.none
             )
 
         CreateApiResponded (Err httpError) ->
             ( { model
-                | props = model.props |> showFormError (Extra.Http.toUserFriendlyMessage httpError)
+                | sidebar = Layouts.Sidebar.withFlashError (Extra.Http.toUserFriendlyMessage httpError) model.sidebar
                 , isSubmittingForm = False
               }
             , Effect.none
@@ -231,8 +223,8 @@ showFormError reason props =
 -- SUBSCRIPTIONS
 
 
-subscriptions : Context -> Model -> Sub Msg
-subscriptions ctx model =
+subscriptions : Context -> Props -> Model -> Sub Msg
+subscriptions ctx props model =
     Sub.batch
         [ Layouts.Sidebar.subscriptions { model = model.sidebar, toMsg = Sidebar }
         ]
@@ -242,22 +234,21 @@ subscriptions ctx model =
 -- VIEW
 
 
-view : Context -> Model -> Document Msg
-view ctx model =
+view : Context -> Props -> Model -> Document Msg
+view ctx props model =
     Layouts.Sidebar.view
         { model = model.sidebar
-        , flash = model.props.flash
         , toMsg = Sidebar
         , context = ctx
         , title = "Create User"
-        , user = model.props.auth.user
+        , user = props.auth.user
         , content =
             [ Components.Header.view
                 { label = "Users"
                 , url = "/users"
                 , content = "Create"
                 }
-            , viewCreateForm model
+            , viewCreateForm props model
             ]
         , overlays = []
         }
@@ -267,8 +258,8 @@ view ctx model =
 -- CREATE FORM
 
 
-viewCreateForm : Model -> Html Msg
-viewCreateForm model =
+viewCreateForm : Props -> Model -> Html Msg
+viewCreateForm props model =
     Components.Form.create
         { onSubmit = SubmittedForm
         , noun = "User"
