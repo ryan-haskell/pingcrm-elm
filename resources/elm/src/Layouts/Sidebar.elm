@@ -22,6 +22,7 @@ import Html exposing (..)
 import Html.Attributes as Attr exposing (attribute, class, href, type_)
 import Html.Events
 import Http
+import Interop
 import Json.Decode
 import Json.Encode
 import Shared.Flash exposing (Flash)
@@ -81,6 +82,7 @@ type Msg
         }
     | DismissedProblem
     | PressedEsc
+    | NavigationError { url : String, error : String }
 
 
 update :
@@ -177,7 +179,16 @@ update ({ msg, toModel, toMsg } as args) =
                             )
 
         DismissedProblem ->
-            return ( Model { model | problem = Nothing }, Effect.none )
+            return
+                ( Model { model | problem = Nothing }
+                , Effect.none
+                )
+
+        NavigationError { url, error } ->
+            return
+                ( Model { model | problem = Just { message = error, details = Just url } }
+                , Effect.none
+                )
 
 
 
@@ -187,8 +198,10 @@ update ({ msg, toModel, toMsg } as args) =
 subscriptions : { model : Model, toMsg : Msg -> msg } -> Sub msg
 subscriptions props =
     Sub.batch
-        [ Browser.Events.onKeyDown (onEscDecoder |> Json.Decode.map props.toMsg)
+        [ Browser.Events.onKeyDown onEscDecoder
+        , Interop.onNavigationError NavigationError
         ]
+        |> Sub.map props.toMsg
 
 
 onEscDecoder : Json.Decode.Decoder Msg
