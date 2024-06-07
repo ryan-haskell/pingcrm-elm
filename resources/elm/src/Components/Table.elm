@@ -9,7 +9,6 @@ module Components.Table exposing (Column, view)
 import Components.Icon
 import Context exposing (Context)
 import Effect exposing (Effect)
-import Extra.Url
 import Html exposing (..)
 import Html.Attributes as Attr exposing (class, href, style)
 import Html.Events

@@ -20,7 +20,6 @@ import Components.Icon
 import Components.Table.Paginated
 import Context exposing (Context)
 import Effect exposing (Effect)
-import Extra.Url
 import Html exposing (..)
 import Html.Attributes as Attr exposing (attribute, class, href)
 import Html.Events

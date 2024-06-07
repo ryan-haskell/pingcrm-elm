@@ -39,6 +39,9 @@ toUserFriendlyMessage error =
         Http.Timeout ->
             "Request timed out."
 
+        Http.BadStatus 409 ->
+            "New update is available, please refresh."
+
         Http.BadStatus 419 ->
             "Session has expired, please refresh."
 

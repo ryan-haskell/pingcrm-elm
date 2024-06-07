@@ -10,16 +10,14 @@ module Inertia.Program exposing
 
 -}
 
-import Browser exposing (UrlRequest)
+import Browser exposing (Document, UrlRequest)
 import Browser.Dom
 import Browser.Events
 import Browser.Navigation as Nav exposing (Key)
-import Extra.Document exposing (Document)
-import Extra.Http
-import Extra.Url
 import Html exposing (Html)
 import Http
 import Inertia.Effect as Effect exposing (Effect)
+import Inertia.HttpRequest
 import Inertia.PageData exposing (PageData)
 import Json.Decode
 import Json.Encode
@@ -28,9 +26,16 @@ import Task
 import Url exposing (Url)
 
 
-type alias Options flags sharedModel sharedMsg sharedEffect pageModel pageMsg pageEffect =
+type alias Program sharedModel sharedMsg pageModel pageMsg =
+    Platform.Program
+        Json.Decode.Value
+        (Model pageModel sharedModel)
+        (Msg pageMsg sharedMsg)
+
+
+new :
     { shared :
-        { init : flags -> Url -> ( sharedModel, sharedEffect )
+        { init : Result Json.Decode.Error flags -> Url -> ( sharedModel, sharedEffect )
         , update : Url -> sharedMsg -> sharedModel -> ( sharedModel, sharedEffect )
         , subscriptions : Url -> sharedModel -> Sub sharedMsg
         , onNavigationError : { url : Url, error : Http.Error } -> sharedMsg
@@ -38,6 +43,7 @@ type alias Options flags sharedModel sharedMsg sharedEffect pageModel pageMsg pa
             { fromInertiaEffect : Effect (Msg pageMsg sharedMsg) -> Cmd (Msg pageMsg sharedMsg)
             , fromSharedMsg : sharedMsg -> Msg pageMsg sharedMsg
             , shared : sharedModel
+            , url : Url
             }
             -> (sharedMsg -> Msg pageMsg sharedMsg)
             -> sharedEffect
@@ -53,6 +59,7 @@ type alias Options flags sharedModel sharedMsg sharedEffect pageModel pageMsg pa
             { fromInertiaEffect : Effect (Msg pageMsg sharedMsg) -> Cmd (Msg pageMsg sharedMsg)
             , fromSharedMsg : sharedMsg -> Msg pageMsg sharedMsg
             , shared : sharedModel
+            , url : Url
             }
             -> (pageMsg -> Msg pageMsg sharedMsg)
             -> pageEffect
@@ -60,20 +67,11 @@ type alias Options flags sharedModel sharedMsg sharedEffect pageModel pageMsg pa
         }
     , interop :
         { decoder : Json.Decode.Decoder flags
-        , fallback : flags
         , onRefreshXsrfToken : () -> Cmd (Msg pageMsg sharedMsg)
         , onXsrfTokenRefreshed : (String -> Msg pageMsg sharedMsg) -> Sub (Msg pageMsg sharedMsg)
         }
     }
-
-
-type alias Program pageModel sharedModel pageMsg sharedMsg =
-    Platform.Program Json.Decode.Value (Model pageModel sharedModel) (Msg pageMsg sharedMsg)
-
-
-new :
-    Options flags sharedModel sharedMsg sharedEffect pageModel pageMsg pageEffect
-    -> Program pageModel sharedModel pageMsg sharedMsg
+    -> Program sharedModel sharedMsg pageModel pageMsg
 new options =
     Browser.application
         { init = init options
@@ -86,31 +84,7 @@ new options =
 
 
 
--- MODEL
-
-
-type alias Model page shared =
-    { inertia : InertiaModel
-    , page : page
-    , shared : shared
-    }
-
-
-type alias InertiaModel =
-    { url : Url
-    , key : Key
-    , pageData : PageData Json.Decode.Value
-    , xsrfToken : String
-    , urlRequestSource : UrlRequestSource
-    }
-
-
-type alias SharedModel =
-    {}
-
-
-type alias PageModel =
-    {}
+-- FLAGS
 
 
 type alias Flags flags =
@@ -145,6 +119,39 @@ inertiaFlagsFallback =
     }
 
 
+strictDecodeFlags :
+    Options flags sharedModel sharedMsg sharedEffect pageModel pageMsg pageEffect
+    -> Json.Decode.Value
+    -> Result Json.Decode.Error (Flags flags)
+strictDecodeFlags options json =
+    Json.Decode.decodeValue
+        (Json.Decode.map2 Flags
+            (Json.Decode.field "inertia" interiaFlagsDecoder)
+            (Json.Decode.field "user" options.interop.decoder)
+        )
+        json
+
+
+
+-- MODEL
+
+
+type alias Model page shared =
+    { inertia : InertiaModel
+    , page : page
+    , shared : shared
+    }
+
+
+type alias InertiaModel =
+    { url : Url
+    , key : Key
+    , pageData : PageData Json.Decode.Value
+    , xsrfToken : String
+    , urlRequestSource : UrlRequestSource
+    }
+
+
 init :
     Options flags sharedModel sharedMsg sharedEffect pageModel pageMsg pageEffect
     -> Json.Decode.Value
@@ -156,31 +163,31 @@ init :
         )
 init options json url key =
     let
-        flags : Flags flags
-        flags =
-            json
-                |> Json.Decode.decodeValue
-                    (Json.Decode.map2 Flags
-                        (Json.Decode.field "inertia" interiaFlagsDecoder)
-                        (Json.Decode.field "user" options.interop.decoder)
+        ( inertiaFlags, userFlagsResult ) =
+            case strictDecodeFlags options json of
+                Ok flags ->
+                    ( flags.inertia
+                    , Ok flags.user
                     )
-                |> Result.withDefault
-                    { inertia = inertiaFlagsFallback
-                    , user = options.interop.fallback
-                    }
+
+                Err jsonDecodeError ->
+                    ( Json.Decode.decodeValue (Json.Decode.field "inertia" interiaFlagsDecoder) json
+                        |> Result.withDefault inertiaFlagsFallback
+                    , Err jsonDecodeError
+                    )
 
         ( shared, sharedEffect ) =
-            options.shared.init flags.user url
+            options.shared.init userFlagsResult url
 
         ( page, pageEffect ) =
-            options.page.init shared url flags.inertia.pageData
+            options.page.init shared url inertiaFlags.pageData
 
         inertia : InertiaModel
         inertia =
             { url = url
             , key = key
-            , pageData = flags.inertia.pageData
-            , xsrfToken = flags.inertia.xsrfToken
+            , pageData = inertiaFlags.pageData
+            , xsrfToken = inertiaFlags.xsrfToken
             , urlRequestSource = AppLoaded
             }
 
@@ -197,6 +204,7 @@ init options json url key =
             { fromInertiaEffect = fromInertiaEffect options model.inertia
             , fromSharedMsg = Shared
             , shared = model.shared
+            , url = model.inertia.url
             }
             Page
             pageEffect
@@ -204,6 +212,7 @@ init options json url key =
             { fromInertiaEffect = fromInertiaEffect options model.inertia
             , fromSharedMsg = Shared
             , shared = model.shared
+            , url = model.inertia.url
             }
             Shared
             sharedEffect
@@ -256,6 +265,7 @@ update options msg model =
                 { fromInertiaEffect = fromInertiaEffect options model.inertia
                 , fromSharedMsg = Shared
                 , shared = model.shared
+                , url = model.inertia.url
                 }
                 Page
                 pageEffect
@@ -271,6 +281,7 @@ update options msg model =
                 { fromInertiaEffect = fromInertiaEffect options model.inertia
                 , fromSharedMsg = Shared
                 , shared = model.shared
+                , url = model.inertia.url
                 }
                 Shared
                 sharedEffect
@@ -299,6 +310,7 @@ update options msg model =
                             { fromInertiaEffect = fromInertiaEffect options model.inertia
                             , fromSharedMsg = Shared
                             , shared = model.shared
+                            , url = model.inertia.url
                             }
                             Page
                             pageEffect
@@ -317,6 +329,7 @@ update options msg model =
                             { fromInertiaEffect = fromInertiaEffect options model.inertia
                             , fromSharedMsg = Shared
                             , shared = model.shared
+                            , url = model.inertia.url
                             }
                             Page
                             pageEffect
@@ -368,6 +381,7 @@ inertiaUpdate options msg model =
                                 , Http.header "X-Requested-With" "XMLHttpRequest"
                                 , Http.header "X-Inertia" "true"
                                 , Http.header "X-XSRF-TOKEN" model.xsrfToken
+                                , Http.header "X-Inertia-Version" model.pageData.version
                                 ]
                             , body = Http.emptyBody
                             , timeout = Nothing
@@ -468,7 +482,7 @@ view :
     -> Document (Msg pageMsg sharedMsg)
 view options model =
     options.page.view model.shared model.inertia.url model.inertia.pageData model.page
-        |> Extra.Document.map Page
+        |> documentMap Page
 
 
 
@@ -496,19 +510,28 @@ fromInertiaEffect options model effect =
             onHttp model req
 
         Effect.PushUrl url ->
-            onPushUrl model url
+            Nav.pushUrl model.key url
 
         Effect.ReplaceUrl url ->
-            onReplaceUrl model url
+            Nav.replaceUrl model.key url
 
         Effect.Back int ->
-            onBack model int
+            Nav.back model.key int
 
         Effect.Forward int ->
-            onForward model int
+            Nav.forward model.key int
+
+        Effect.Load url ->
+            Nav.load url
+
+        Effect.Reload ->
+            Nav.reload
+
+        Effect.ReloadAndSkipCache ->
+            Nav.reloadAndSkipCache
 
 
-onHttp : InertiaModel -> Extra.Http.Request (Msg pageMsg sharedMsg) -> Cmd (Msg pageMsg sharedMsg)
+onHttp : InertiaModel -> Inertia.HttpRequest.Request (Msg pageMsg sharedMsg) -> Cmd (Msg pageMsg sharedMsg)
 onHttp ({ url } as model) req =
     let
         toHttpMsg : Result Http.Error (PageData Json.Decode.Value) -> Msg pageMsg sharedMsg
@@ -524,7 +547,7 @@ onHttp ({ url } as model) req =
                                 req.onFailure (Http.BadBody (Json.Decode.errorToString jsonDecodeError))
 
                     else
-                        case Extra.Url.fromAbsoluteUrl newPageData.url url of
+                        case fromAbsoluteUrl newPageData.url url of
                             Just newUrl ->
                                 UrlRequested (Http newPageData) (Browser.Internal newUrl)
                                     |> Inertia
@@ -548,29 +571,72 @@ onHttp ({ url } as model) req =
             , Http.header "X-Requested-With" "XMLHttpRequest"
             , Http.header "X-Inertia" "true"
             , Http.header "X-XSRF-TOKEN" model.xsrfToken
+            , Http.header "X-Inertia-Version" model.pageData.version
             ]
+                ++ req.headers
         , body = req.body
-        , timeout = Nothing
-        , tracker = Nothing
+        , timeout = req.timeout
+        , tracker = req.tracker
         , expect = Http.expectJson toHttpMsg decoder
         }
 
 
-onPushUrl : InertiaModel -> String -> Cmd (Msg pageMsg sharedMsg)
-onPushUrl model url =
-    Nav.pushUrl model.key url
+
+-- HELPERS
 
 
-onReplaceUrl : InertiaModel -> String -> Cmd (Msg pageMsg sharedMsg)
-onReplaceUrl model url =
-    Nav.replaceUrl model.key url
+documentMap : (a -> b) -> Document a -> Document b
+documentMap fn doc =
+    { title = doc.title
+    , body = List.map (Html.map fn) doc.body
+    }
 
 
-onBack : InertiaModel -> Int -> Cmd (Msg pageMsg sharedMsg)
-onBack model int =
-    Nav.back model.key int
+fromAbsoluteUrl : String -> Url -> Maybe Url
+fromAbsoluteUrl absoluteUrl url =
+    let
+        baseUrl : String
+        baseUrl =
+            Url.toString { url | fragment = Nothing, query = Nothing, path = "" }
+    in
+    Url.fromString (baseUrl ++ absoluteUrl)
 
 
-onForward : InertiaModel -> Int -> Cmd (Msg pageMsg sharedMsg)
-onForward model int =
-    Nav.forward model.key int
+type alias Options flags sharedModel sharedMsg sharedEffect pageModel pageMsg pageEffect =
+    { shared :
+        { init : Result Json.Decode.Error flags -> Url -> ( sharedModel, sharedEffect )
+        , update : Url -> sharedMsg -> sharedModel -> ( sharedModel, sharedEffect )
+        , subscriptions : Url -> sharedModel -> Sub sharedMsg
+        , onNavigationError : { url : Url, error : Http.Error } -> sharedMsg
+        , effectToCmd :
+            { fromInertiaEffect : Effect (Msg pageMsg sharedMsg) -> Cmd (Msg pageMsg sharedMsg)
+            , fromSharedMsg : sharedMsg -> Msg pageMsg sharedMsg
+            , shared : sharedModel
+            , url : Url
+            }
+            -> (sharedMsg -> Msg pageMsg sharedMsg)
+            -> sharedEffect
+            -> Cmd (Msg pageMsg sharedMsg)
+        }
+    , page :
+        { init : sharedModel -> Url -> PageData Json.Decode.Value -> ( pageModel, pageEffect )
+        , update : sharedModel -> Url -> PageData Json.Decode.Value -> pageMsg -> pageModel -> ( pageModel, pageEffect )
+        , subscriptions : sharedModel -> Url -> PageData Json.Decode.Value -> pageModel -> Sub pageMsg
+        , view : sharedModel -> Url -> PageData Json.Decode.Value -> pageModel -> Browser.Document pageMsg
+        , onPropsChanged : sharedModel -> Url -> PageData Json.Decode.Value -> pageModel -> ( pageModel, pageEffect )
+        , effectToCmd :
+            { fromInertiaEffect : Effect (Msg pageMsg sharedMsg) -> Cmd (Msg pageMsg sharedMsg)
+            , fromSharedMsg : sharedMsg -> Msg pageMsg sharedMsg
+            , shared : sharedModel
+            , url : Url
+            }
+            -> (pageMsg -> Msg pageMsg sharedMsg)
+            -> pageEffect
+            -> Cmd (Msg pageMsg sharedMsg)
+        }
+    , interop :
+        { decoder : Json.Decode.Decoder flags
+        , onRefreshXsrfToken : () -> Cmd (Msg pageMsg sharedMsg)
+        , onXsrfTokenRefreshed : (String -> Msg pageMsg sharedMsg) -> Sub (Msg pageMsg sharedMsg)
+        }
+    }

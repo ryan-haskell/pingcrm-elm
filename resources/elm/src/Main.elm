@@ -11,7 +11,7 @@ import Shared
 import Url exposing (Url)
 
 
-main : Program Pages.Model Shared.Model Pages.Msg Shared.Msg
+main : Program Shared.Model Shared.Msg Pages.Model Pages.Msg
 main =
     Inertia.Program.new
         { shared =
@@ -31,7 +31,6 @@ main =
             }
         , interop =
             { decoder = Interop.decoder
-            , fallback = Interop.fallback
             , onRefreshXsrfToken = Interop.onRefreshXsrfToken
             , onXsrfTokenRefreshed = Interop.onXsrfTokenRefreshed
             }
@@ -50,6 +49,7 @@ effectToCmd :
     { fromInertiaEffect : Inertia.Effect.Effect Msg -> Cmd Msg
     , fromSharedMsg : Shared.Msg -> Msg
     , shared : Shared.Model
+    , url : Url
     }
     -> (someMsg -> Msg)
     -> Effect someMsg
@@ -64,6 +64,7 @@ toCmd :
     { fromInertiaEffect : Inertia.Effect.Effect Msg -> Cmd Msg
     , fromSharedMsg : Shared.Msg -> Msg
     , shared : Shared.Model
+    , url : Url
     }
     -> Effect Msg
     -> Cmd Msg

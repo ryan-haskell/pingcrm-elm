@@ -267,7 +267,7 @@ update ctx props msg ({ errors } as model) =
                         , String.fromInt props.organization.id
                         ]
                         []
-                , body = body
+                , body = Http.jsonBody body
                 , decoder = Json.Decode.succeed ()
                 , onResponse = UpdateResponded
                 }
@@ -305,7 +305,7 @@ update ctx props msg ({ errors } as model) =
                         , "restore"
                         ]
                         []
-                , body = Json.Encode.null
+                , body = Http.emptyBody
                 , decoder = Json.Decode.succeed ()
                 , onResponse = RestoreResponded
                 }

@@ -127,7 +127,7 @@ update ctx props msg model =
             ( { model | formError = Nothing }
             , Effect.post
                 { url = "/login"
-                , body = form
+                , body = Http.jsonBody form
                 , decoder = loginResponseDecoder
                 , onResponse = ApiResponded
                 }

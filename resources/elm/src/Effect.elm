@@ -4,6 +4,7 @@ module Effect exposing
     , sendMsg
     , get, post, put, delete
     , pushUrl, replaceUrl, back, forward
+    , load, reload, reloadAndSkipCache
     , reportJsonDecodeError
     , reportNavigationError
     , map
@@ -17,6 +18,7 @@ module Effect exposing
 @docs sendMsg
 @docs get, post, put, delete
 @docs pushUrl, replaceUrl, back, forward
+@docs load, reload, reloadAndSkipCache
 
 @docs reportJsonDecodeError
 @docs reportNavigationError
@@ -33,7 +35,8 @@ import Url exposing (Url)
 
 
 type Effect msg
-    = ReportJsonDecodeError
+    = Batch (List (Effect msg))
+    | ReportJsonDecodeError
         { component : String
         , error : Json.Decode.Error
         }
@@ -42,7 +45,6 @@ type Effect msg
         , error : Http.Error
         }
     | Inertia (Inertia.Effect.Effect msg)
-    | Batch (List (Effect msg))
 
 
 
@@ -92,6 +94,21 @@ forward int =
     Inertia (Inertia.Effect.forward int)
 
 
+load : String -> Effect msg
+load url =
+    Inertia (Inertia.Effect.load url)
+
+
+reload : Effect msg
+reload =
+    Inertia Inertia.Effect.reload
+
+
+reloadAndSkipCache : Effect msg
+reloadAndSkipCache =
+    Inertia Inertia.Effect.reloadAndSkipCache
+
+
 
 -- HTTP
 
@@ -108,7 +125,7 @@ get options =
 
 post :
     { url : String
-    , body : Json.Encode.Value
+    , body : Http.Body
     , decoder : Json.Decode.Decoder props
     , onResponse : Result Http.Error props -> msg
     }
@@ -119,7 +136,7 @@ post options =
 
 put :
     { url : String
-    , body : Json.Encode.Value
+    , body : Http.Body
     , decoder : Json.Decode.Decoder props
     , onResponse : Result Http.Error props -> msg
     }

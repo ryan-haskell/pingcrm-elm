@@ -2,7 +2,6 @@ port module Inertia.Example exposing (main)
 
 import Browser exposing (Document)
 import Browser.Events
-import Extra.Http
 import Html exposing (Html)
 import Http
 import Inertia.Effect as Effect exposing (Effect)
@@ -16,7 +15,7 @@ import Url exposing (Url)
 -- src/Main.elm
 
 
-main : Program PageModel SharedModel PageMsg SharedMsg
+main : Program SharedModel SharedMsg PageModel PageMsg
 main =
     Inertia.Program.new
         { shared =
@@ -36,11 +35,14 @@ main =
             }
         , interop =
             { decoder = decoder
-            , fallback = fallback
             , onRefreshXsrfToken = onRefreshXsrfToken
             , onXsrfTokenRefreshed = onXsrfTokenRefreshed
             }
         }
+
+
+
+-- EFFECTS
 
 
 type alias Msg =
@@ -51,12 +53,15 @@ toCmd :
     { fromInertiaEffect : Effect Msg -> Cmd Msg
     , fromSharedMsg : SharedMsg -> Msg
     , shared : SharedModel
+    , url : Url
     }
     -> (someMsg -> Msg)
     -> Effect someMsg
     -> Cmd Msg
 toCmd props toMsg effect =
-    props.fromInertiaEffect (Effect.map toMsg effect)
+    effect
+        |> Effect.map toMsg
+        |> props.fromInertiaEffect
 
 
 
@@ -72,12 +77,6 @@ decoder : Json.Decode.Decoder Flags
 decoder =
     Json.Decode.map Flags
         (Json.Decode.field "window" windowSizeDecoder)
-
-
-fallback : Flags
-fallback =
-    { window = { width = 0, height = 0 }
-    }
 
 
 type alias WindowSize =
@@ -203,9 +202,14 @@ type SharedMsg
     | Resize Int Int
 
 
-sharedInit : Flags -> Url -> ( SharedModel, Effect SharedMsg )
-sharedInit flags url =
-    ( { isMobile = flags.window.width < 740 }
+sharedInit : Result Json.Decode.Error Flags -> Url -> ( SharedModel, Effect SharedMsg )
+sharedInit flagsResult url =
+    ( case flagsResult of
+        Ok flags ->
+            { isMobile = flags.window.width < 740 }
+
+        Err reason ->
+            { isMobile = False }
     , Effect.none
     )
 

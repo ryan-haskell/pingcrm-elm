@@ -1,6 +1,5 @@
 port module Interop exposing
-    ( Flags
-    , decoder, fallback
+    ( Flags, decoder
     , onRefreshXsrfToken, onXsrfTokenRefreshed
     , onReportJsonDecodeError
     , onReportNavigationError, onNavigationError
@@ -8,8 +7,7 @@ port module Interop exposing
 
 {-|
 
-@docs Flags
-@docs decoder, fallback
+@docs Flags, decoder
 
 @docs onRefreshXsrfToken, onXsrfTokenRefreshed
 
@@ -34,12 +32,6 @@ decoder : Json.Decode.Decoder Flags
 decoder =
     Json.Decode.map Flags
         (Json.Decode.field "window" windowSizeDecoder)
-
-
-fallback : Flags
-fallback =
-    { window = { width = 0, height = 0 }
-    }
 
 
 type alias WindowSize =

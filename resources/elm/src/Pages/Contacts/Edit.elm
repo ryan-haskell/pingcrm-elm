@@ -291,7 +291,7 @@ update ctx props msg ({ errors } as model) =
                         , String.fromInt props.contact.id
                         ]
                         []
-                , body = body
+                , body = Http.jsonBody body
                 , decoder = Json.Decode.succeed ()
                 , onResponse = UpdateResponded
                 }
@@ -333,7 +333,7 @@ update ctx props msg ({ errors } as model) =
             ( model
             , Effect.put
                 { url = Url.Builder.absolute [ "contacts", String.fromInt props.contact.id, "restore" ] []
-                , body = Json.Encode.null
+                , body = Http.emptyBody
                 , decoder = Json.Decode.succeed ()
                 , onResponse = RestoreResponded
                 }

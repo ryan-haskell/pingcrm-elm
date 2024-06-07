@@ -241,7 +241,7 @@ update ctx props msg ({ errors } as model) =
             ( { model | isSubmittingForm = True }
             , Effect.post
                 { url = "/contacts"
-                , body = body
+                , body = Http.jsonBody body
                 , decoder = decoder
                 , onResponse = CreateApiResponded
                 }

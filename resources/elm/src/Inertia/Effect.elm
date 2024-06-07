@@ -3,7 +3,9 @@ module Inertia.Effect exposing
     , none, batch
     , sendMsg
     , get, post, put, delete
+    , request
     , pushUrl, replaceUrl, back, forward
+    , load, reload, reloadAndSkipCache
     , map
     )
 
@@ -15,15 +17,17 @@ module Inertia.Effect exposing
 @docs sendMsg
 
 @docs get, post, put, delete
+@docs request
 
 @docs pushUrl, replaceUrl, back, forward
+@docs load, reload, reloadAndSkipCache
 
 @docs map
 
 -}
 
-import Extra.Http
 import Http
+import Inertia.HttpRequest
 import Json.Decode
 import Json.Encode
 import Url exposing (Url)
@@ -32,12 +36,15 @@ import Url exposing (Url)
 type Effect msg
     = None
     | Batch (List (Effect msg))
-    | Http (Extra.Http.Request msg)
     | SendMsg msg
+    | Http (Inertia.HttpRequest.Request msg)
     | PushUrl String
     | ReplaceUrl String
     | Back Int
     | Forward Int
+    | Load String
+    | Reload
+    | ReloadAndSkipCache
 
 
 
@@ -87,6 +94,21 @@ forward int =
     Forward int
 
 
+load : String -> Effect msg
+load url =
+    Load url
+
+
+reload : Effect msg
+reload =
+    Reload
+
+
+reloadAndSkipCache : Effect msg
+reloadAndSkipCache =
+    ReloadAndSkipCache
+
+
 
 -- HTTP
 
@@ -119,12 +141,15 @@ get options =
         , body = Http.emptyBody
         , decoder = decoder
         , onFailure = onFailure
+        , headers = []
+        , tracker = Nothing
+        , timeout = Nothing
         }
 
 
 post :
     { url : String
-    , body : Json.Encode.Value
+    , body : Http.Body
     , decoder : Json.Decode.Decoder props
     , onResponse : Result Http.Error props -> msg
     }
@@ -143,15 +168,18 @@ post options =
     Http
         { method = "POST"
         , url = options.url
-        , body = Http.jsonBody options.body
+        , body = options.body
         , decoder = decoder
         , onFailure = onFailure
+        , headers = []
+        , tracker = Nothing
+        , timeout = Nothing
         }
 
 
 put :
     { url : String
-    , body : Json.Encode.Value
+    , body : Http.Body
     , decoder : Json.Decode.Decoder props
     , onResponse : Result Http.Error props -> msg
     }
@@ -170,9 +198,12 @@ put options =
     Http
         { method = "PUT"
         , url = options.url
-        , body = Http.jsonBody options.body
+        , body = options.body
         , decoder = decoder
         , onFailure = onFailure
+        , headers = []
+        , tracker = Nothing
+        , timeout = Nothing
         }
 
 
@@ -199,7 +230,15 @@ delete options =
         , body = Http.emptyBody
         , decoder = decoder
         , onFailure = onFailure
+        , headers = []
+        , tracker = Nothing
+        , timeout = Nothing
         }
+
+
+request : Inertia.HttpRequest.Request msg -> Effect msg
+request req =
+    Http req
 
 
 
@@ -219,7 +258,7 @@ map fn effect =
             SendMsg (fn msg)
 
         Http req ->
-            Http (Extra.Http.map fn req)
+            Http (Inertia.HttpRequest.map fn req)
 
         PushUrl url ->
             PushUrl url
@@ -232,3 +271,12 @@ map fn effect =
 
         Forward int ->
             Forward int
+
+        Load url ->
+            Load url
+
+        Reload ->
+            Reload
+
+        ReloadAndSkipCache ->
+            ReloadAndSkipCache
