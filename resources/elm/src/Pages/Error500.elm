@@ -25,7 +25,7 @@ import Json.Decode
 
 
 type alias Props =
-    { page : String
+    { component : String
     , error : Json.Decode.Error
     }
 
@@ -77,6 +77,6 @@ view ctx { props } =
     , body =
         Components.ErrorPage.view
             { title = "500"
-            , message = "Unexpected data for '" ++ props.page ++ "'"
+            , message = "Unexpected data for '" ++ props.component ++ "'"
             }
     }

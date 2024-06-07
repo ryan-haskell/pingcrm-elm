@@ -16,6 +16,7 @@ import Context exposing (Context)
 import Effect exposing (Effect)
 import Extra.Document exposing (Document)
 import Html exposing (Html)
+import Inertia.PageData exposing (PageData)
 import Json.Decode
 import Json.Encode
 import Pages.Contacts
@@ -32,7 +33,8 @@ import Pages.Reports
 import Pages.Users
 import Pages.Users.Create
 import Pages.Users.Edit
-import Shared.PageData exposing (PageData)
+import Shared
+import Url exposing (Url)
 
 
 
@@ -56,12 +58,12 @@ type Model
     | Model_Error500 Pages.Error500.Model
 
 
-init : Context -> PageData Json.Decode.Value -> ( Model, Effect Msg )
-init context pageData =
+init : Shared.Model -> Url -> PageData Json.Decode.Value -> ( Model, Effect Msg )
+init shared url pageData =
     case pageData.component of
         "Auth/Login" ->
             initPage
-                { context = context
+                { context = Context shared url
                 , pageData = pageData
                 , decoder = Pages.Login.decoder
                 , init = Pages.Login.init
@@ -71,7 +73,7 @@ init context pageData =
 
         "Dashboard/Index" ->
             initPage
-                { context = context
+                { context = Context shared url
                 , pageData = pageData
                 , decoder = Pages.Dashboard.decoder
                 , init = Pages.Dashboard.init
@@ -81,7 +83,7 @@ init context pageData =
 
         "Organizations/Index" ->
             initPage
-                { context = context
+                { context = Context shared url
                 , pageData = pageData
                 , decoder = Pages.Organizations.decoder
                 , init = Pages.Organizations.init
@@ -91,7 +93,7 @@ init context pageData =
 
         "Organizations/Create" ->
             initPage
-                { context = context
+                { context = Context shared url
                 , pageData = pageData
                 , decoder = Pages.Organizations.Create.decoder
                 , init = Pages.Organizations.Create.init
@@ -101,7 +103,7 @@ init context pageData =
 
         "Organizations/Edit" ->
             initPage
-                { context = context
+                { context = Context shared url
                 , pageData = pageData
                 , decoder = Pages.Organizations.Edit.decoder
                 , init = Pages.Organizations.Edit.init
@@ -111,7 +113,7 @@ init context pageData =
 
         "Contacts/Index" ->
             initPage
-                { context = context
+                { context = Context shared url
                 , pageData = pageData
                 , decoder = Pages.Contacts.decoder
                 , init = Pages.Contacts.init
@@ -121,7 +123,7 @@ init context pageData =
 
         "Contacts/Create" ->
             initPage
-                { context = context
+                { context = Context shared url
                 , pageData = pageData
                 , decoder = Pages.Contacts.Create.decoder
                 , init = Pages.Contacts.Create.init
@@ -131,7 +133,7 @@ init context pageData =
 
         "Contacts/Edit" ->
             initPage
-                { context = context
+                { context = Context shared url
                 , pageData = pageData
                 , decoder = Pages.Contacts.Edit.decoder
                 , init = Pages.Contacts.Edit.init
@@ -141,7 +143,7 @@ init context pageData =
 
         "Users/Index" ->
             initPage
-                { context = context
+                { context = Context shared url
                 , pageData = pageData
                 , decoder = Pages.Users.decoder
                 , init = Pages.Users.init
@@ -151,7 +153,7 @@ init context pageData =
 
         "Users/Create" ->
             initPage
-                { context = context
+                { context = Context shared url
                 , pageData = pageData
                 , decoder = Pages.Users.Create.decoder
                 , init = Pages.Users.Create.init
@@ -161,7 +163,7 @@ init context pageData =
 
         "Users/Edit" ->
             initPage
-                { context = context
+                { context = Context shared url
                 , pageData = pageData
                 , decoder = Pages.Users.Edit.decoder
                 , init = Pages.Users.Edit.init
@@ -171,7 +173,7 @@ init context pageData =
 
         "Reports/Index" ->
             initPage
-                { context = context
+                { context = Context shared url
                 , pageData = pageData
                 , decoder = Pages.Reports.decoder
                 , init = Pages.Reports.init
@@ -180,7 +182,7 @@ init context pageData =
                 }
 
         _ ->
-            Pages.Error404.init context
+            Pages.Error404.init (Context shared url)
                 { page = pageData.component
                 }
                 |> Tuple.mapBoth
@@ -209,89 +211,89 @@ type Msg
     | Msg_Error500 Pages.Error500.Msg
 
 
-update : Context -> PageData Json.Decode.Value -> Msg -> Model -> ( Model, Effect Msg )
-update ctx pageData msg model =
+update : Shared.Model -> Url -> PageData Json.Decode.Value -> Msg -> Model -> ( Model, Effect Msg )
+update shared url pageData msg model =
     case ( msg, model ) of
         ( Msg_Login pageMsg, Model_Login page ) ->
-            Pages.Login.update ctx page.props pageMsg page.model
+            Pages.Login.update (Context shared url) page.props pageMsg page.model
                 |> Tuple.mapBoth
                     (\m -> Model_Login { props = page.props, model = m })
                     (Effect.map Msg_Login)
 
         ( Msg_Dashboard pageMsg, Model_Dashboard page ) ->
-            Pages.Dashboard.update ctx page.props pageMsg page.model
+            Pages.Dashboard.update (Context shared url) page.props pageMsg page.model
                 |> Tuple.mapBoth
                     (\m -> Model_Dashboard { props = page.props, model = m })
                     (Effect.map Msg_Dashboard)
 
         ( Msg_Organizations pageMsg, Model_Organizations page ) ->
-            Pages.Organizations.update ctx page.props pageMsg page.model
+            Pages.Organizations.update (Context shared url) page.props pageMsg page.model
                 |> Tuple.mapBoth
                     (\m -> Model_Organizations { props = page.props, model = m })
                     (Effect.map Msg_Organizations)
 
         ( Msg_Organizations_Create pageMsg, Model_Organizations_Create page ) ->
-            Pages.Organizations.Create.update ctx page.props pageMsg page.model
+            Pages.Organizations.Create.update (Context shared url) page.props pageMsg page.model
                 |> Tuple.mapBoth
                     (\m -> Model_Organizations_Create { props = page.props, model = m })
                     (Effect.map Msg_Organizations_Create)
 
         ( Msg_Organizations_Edit pageMsg, Model_Organizations_Edit page ) ->
-            Pages.Organizations.Edit.update ctx page.props pageMsg page.model
+            Pages.Organizations.Edit.update (Context shared url) page.props pageMsg page.model
                 |> Tuple.mapBoth
                     (\m -> Model_Organizations_Edit { props = page.props, model = m })
                     (Effect.map Msg_Organizations_Edit)
 
         ( Msg_Contacts pageMsg, Model_Contacts page ) ->
-            Pages.Contacts.update ctx page.props pageMsg page.model
+            Pages.Contacts.update (Context shared url) page.props pageMsg page.model
                 |> Tuple.mapBoth
                     (\m -> Model_Contacts { props = page.props, model = m })
                     (Effect.map Msg_Contacts)
 
         ( Msg_Contacts_Create pageMsg, Model_Contacts_Create page ) ->
-            Pages.Contacts.Create.update ctx page.props pageMsg page.model
+            Pages.Contacts.Create.update (Context shared url) page.props pageMsg page.model
                 |> Tuple.mapBoth
                     (\m -> Model_Contacts_Create { props = page.props, model = m })
                     (Effect.map Msg_Contacts_Create)
 
         ( Msg_Contacts_Edit pageMsg, Model_Contacts_Edit page ) ->
-            Pages.Contacts.Edit.update ctx page.props pageMsg page.model
+            Pages.Contacts.Edit.update (Context shared url) page.props pageMsg page.model
                 |> Tuple.mapBoth
                     (\m -> Model_Contacts_Edit { props = page.props, model = m })
                     (Effect.map Msg_Contacts_Edit)
 
         ( Msg_Users pageMsg, Model_Users page ) ->
-            Pages.Users.update ctx page.props pageMsg page.model
+            Pages.Users.update (Context shared url) page.props pageMsg page.model
                 |> Tuple.mapBoth
                     (\m -> Model_Users { props = page.props, model = m })
                     (Effect.map Msg_Users)
 
         ( Msg_Users_Create pageMsg, Model_Users_Create page ) ->
-            Pages.Users.Create.update ctx page.props pageMsg page.model
+            Pages.Users.Create.update (Context shared url) page.props pageMsg page.model
                 |> Tuple.mapBoth
                     (\m -> Model_Users_Create { props = page.props, model = m })
                     (Effect.map Msg_Users_Create)
 
         ( Msg_Users_Edit pageMsg, Model_Users_Edit page ) ->
-            Pages.Users.Edit.update ctx page.props pageMsg page.model
+            Pages.Users.Edit.update (Context shared url) page.props pageMsg page.model
                 |> Tuple.mapBoth
                     (\m -> Model_Users_Edit { props = page.props, model = m })
                     (Effect.map Msg_Users_Edit)
 
         ( Msg_Reports pageMsg, Model_Reports page ) ->
-            Pages.Reports.update ctx page.props pageMsg page.model
+            Pages.Reports.update (Context shared url) page.props pageMsg page.model
                 |> Tuple.mapBoth
                     (\m -> Model_Reports { props = page.props, model = m })
                     (Effect.map Msg_Reports)
 
         ( Msg_Error404 pageMsg, Model_Error404 pageModel ) ->
-            Pages.Error404.update ctx pageMsg pageModel
+            Pages.Error404.update (Context shared url) pageMsg pageModel
                 |> Tuple.mapBoth
                     Model_Error404
                     (Effect.map Msg_Error404)
 
         ( Msg_Error500 pageMsg, Model_Error500 pageModel ) ->
-            Pages.Error500.update ctx pageMsg pageModel
+            Pages.Error500.update (Context shared url) pageMsg pageModel
                 |> Tuple.mapBoth
                     Model_Error500
                     (Effect.map Msg_Error500)
@@ -302,12 +304,12 @@ update ctx pageData msg model =
             )
 
 
-onPropsChanged : Context -> PageData Json.Decode.Value -> Model -> ( Model, Effect Msg )
-onPropsChanged ctx pageData model =
+onPropsChanged : Shared.Model -> Url -> PageData Json.Decode.Value -> Model -> ( Model, Effect Msg )
+onPropsChanged shared url pageData model =
     case model of
         Model_Login page ->
             onPropsChangedPage
-                { context = ctx
+                { context = Context shared url
                 , pageData = pageData
                 , model = page.model
                 , decoder = Pages.Login.decoder
@@ -318,7 +320,7 @@ onPropsChanged ctx pageData model =
 
         Model_Dashboard page ->
             onPropsChangedPage
-                { context = ctx
+                { context = Context shared url
                 , pageData = pageData
                 , model = page.model
                 , decoder = Pages.Dashboard.decoder
@@ -329,7 +331,7 @@ onPropsChanged ctx pageData model =
 
         Model_Organizations page ->
             onPropsChangedPage
-                { context = ctx
+                { context = Context shared url
                 , pageData = pageData
                 , model = page.model
                 , decoder = Pages.Organizations.decoder
@@ -340,7 +342,7 @@ onPropsChanged ctx pageData model =
 
         Model_Organizations_Create page ->
             onPropsChangedPage
-                { context = ctx
+                { context = Context shared url
                 , pageData = pageData
                 , model = page.model
                 , decoder = Pages.Organizations.Create.decoder
@@ -351,7 +353,7 @@ onPropsChanged ctx pageData model =
 
         Model_Organizations_Edit page ->
             onPropsChangedPage
-                { context = ctx
+                { context = Context shared url
                 , pageData = pageData
                 , model = page.model
                 , decoder = Pages.Organizations.Edit.decoder
@@ -362,7 +364,7 @@ onPropsChanged ctx pageData model =
 
         Model_Contacts page ->
             onPropsChangedPage
-                { context = ctx
+                { context = Context shared url
                 , pageData = pageData
                 , model = page.model
                 , decoder = Pages.Contacts.decoder
@@ -373,7 +375,7 @@ onPropsChanged ctx pageData model =
 
         Model_Contacts_Create page ->
             onPropsChangedPage
-                { context = ctx
+                { context = Context shared url
                 , pageData = pageData
                 , model = page.model
                 , decoder = Pages.Contacts.Create.decoder
@@ -384,7 +386,7 @@ onPropsChanged ctx pageData model =
 
         Model_Contacts_Edit page ->
             onPropsChangedPage
-                { context = ctx
+                { context = Context shared url
                 , pageData = pageData
                 , model = page.model
                 , decoder = Pages.Contacts.Edit.decoder
@@ -395,7 +397,7 @@ onPropsChanged ctx pageData model =
 
         Model_Users page ->
             onPropsChangedPage
-                { context = ctx
+                { context = Context shared url
                 , pageData = pageData
                 , model = page.model
                 , decoder = Pages.Users.decoder
@@ -406,7 +408,7 @@ onPropsChanged ctx pageData model =
 
         Model_Users_Create page ->
             onPropsChangedPage
-                { context = ctx
+                { context = Context shared url
                 , pageData = pageData
                 , model = page.model
                 , decoder = Pages.Users.Create.decoder
@@ -417,7 +419,7 @@ onPropsChanged ctx pageData model =
 
         Model_Users_Edit page ->
             onPropsChangedPage
-                { context = ctx
+                { context = Context shared url
                 , pageData = pageData
                 , model = page.model
                 , decoder = Pages.Users.Edit.decoder
@@ -428,7 +430,7 @@ onPropsChanged ctx pageData model =
 
         Model_Reports page ->
             onPropsChangedPage
-                { context = ctx
+                { context = Context shared url
                 , pageData = pageData
                 , model = page.model
                 , decoder = Pages.Reports.decoder
@@ -444,63 +446,63 @@ onPropsChanged ctx pageData model =
             ( model, Effect.none )
 
 
-subscriptions : Context -> PageData Json.Decode.Value -> Model -> Sub Msg
-subscriptions context pageData model =
+subscriptions : Shared.Model -> Url -> PageData Json.Decode.Value -> Model -> Sub Msg
+subscriptions shared url pageData model =
     case model of
         Model_Login page ->
-            Pages.Login.subscriptions context page.props page.model
+            Pages.Login.subscriptions (Context shared url) page.props page.model
                 |> Sub.map Msg_Login
 
         Model_Dashboard page ->
-            Pages.Dashboard.subscriptions context page.props page.model
+            Pages.Dashboard.subscriptions (Context shared url) page.props page.model
                 |> Sub.map Msg_Dashboard
 
         Model_Organizations page ->
-            Pages.Organizations.subscriptions context page.props page.model
+            Pages.Organizations.subscriptions (Context shared url) page.props page.model
                 |> Sub.map Msg_Organizations
 
         Model_Organizations_Create page ->
-            Pages.Organizations.Create.subscriptions context page.props page.model
+            Pages.Organizations.Create.subscriptions (Context shared url) page.props page.model
                 |> Sub.map Msg_Organizations_Create
 
         Model_Organizations_Edit page ->
-            Pages.Organizations.Edit.subscriptions context page.props page.model
+            Pages.Organizations.Edit.subscriptions (Context shared url) page.props page.model
                 |> Sub.map Msg_Organizations_Edit
 
         Model_Contacts page ->
-            Pages.Contacts.subscriptions context page.props page.model
+            Pages.Contacts.subscriptions (Context shared url) page.props page.model
                 |> Sub.map Msg_Contacts
 
         Model_Contacts_Create page ->
-            Pages.Contacts.Create.subscriptions context page.props page.model
+            Pages.Contacts.Create.subscriptions (Context shared url) page.props page.model
                 |> Sub.map Msg_Contacts_Create
 
         Model_Contacts_Edit page ->
-            Pages.Contacts.Edit.subscriptions context page.props page.model
+            Pages.Contacts.Edit.subscriptions (Context shared url) page.props page.model
                 |> Sub.map Msg_Contacts_Edit
 
         Model_Users page ->
-            Pages.Users.subscriptions context page.props page.model
+            Pages.Users.subscriptions (Context shared url) page.props page.model
                 |> Sub.map Msg_Users
 
         Model_Users_Create page ->
-            Pages.Users.Create.subscriptions context page.props page.model
+            Pages.Users.Create.subscriptions (Context shared url) page.props page.model
                 |> Sub.map Msg_Users_Create
 
         Model_Users_Edit page ->
-            Pages.Users.Edit.subscriptions context page.props page.model
+            Pages.Users.Edit.subscriptions (Context shared url) page.props page.model
                 |> Sub.map Msg_Users_Edit
 
         Model_Reports page ->
-            Pages.Reports.subscriptions context page.props page.model
+            Pages.Reports.subscriptions (Context shared url) page.props page.model
                 |> Sub.map Msg_Reports
 
         Model_Error404 pageModel ->
-            Pages.Error404.subscriptions context pageModel
+            Pages.Error404.subscriptions (Context shared url) pageModel
                 |> Sub.map Msg_Error404
 
         Model_Error500 pageModel ->
-            Pages.Error500.subscriptions context pageModel
+            Pages.Error500.subscriptions (Context shared url) pageModel
                 |> Sub.map Msg_Error500
 
 
@@ -508,63 +510,63 @@ subscriptions context pageData model =
 -- VIEW
 
 
-view : Context -> PageData Json.Decode.Value -> Model -> Document Msg
-view context pageData model =
+view : Shared.Model -> Url -> PageData Json.Decode.Value -> Model -> Document Msg
+view shared url pageData model =
     case model of
         Model_Login page ->
-            Pages.Login.view context page.props page.model
+            Pages.Login.view (Context shared url) page.props page.model
                 |> Extra.Document.map Msg_Login
 
         Model_Dashboard page ->
-            Pages.Dashboard.view context page.props page.model
+            Pages.Dashboard.view (Context shared url) page.props page.model
                 |> Extra.Document.map Msg_Dashboard
 
         Model_Organizations page ->
-            Pages.Organizations.view context page.props page.model
+            Pages.Organizations.view (Context shared url) page.props page.model
                 |> Extra.Document.map Msg_Organizations
 
         Model_Organizations_Create page ->
-            Pages.Organizations.Create.view context page.props page.model
+            Pages.Organizations.Create.view (Context shared url) page.props page.model
                 |> Extra.Document.map Msg_Organizations_Create
 
         Model_Organizations_Edit page ->
-            Pages.Organizations.Edit.view context page.props page.model
+            Pages.Organizations.Edit.view (Context shared url) page.props page.model
                 |> Extra.Document.map Msg_Organizations_Edit
 
         Model_Contacts page ->
-            Pages.Contacts.view context page.props page.model
+            Pages.Contacts.view (Context shared url) page.props page.model
                 |> Extra.Document.map Msg_Contacts
 
         Model_Contacts_Create page ->
-            Pages.Contacts.Create.view context page.props page.model
+            Pages.Contacts.Create.view (Context shared url) page.props page.model
                 |> Extra.Document.map Msg_Contacts_Create
 
         Model_Contacts_Edit page ->
-            Pages.Contacts.Edit.view context page.props page.model
+            Pages.Contacts.Edit.view (Context shared url) page.props page.model
                 |> Extra.Document.map Msg_Contacts_Edit
 
         Model_Users page ->
-            Pages.Users.view context page.props page.model
+            Pages.Users.view (Context shared url) page.props page.model
                 |> Extra.Document.map Msg_Users
 
         Model_Users_Create page ->
-            Pages.Users.Create.view context page.props page.model
+            Pages.Users.Create.view (Context shared url) page.props page.model
                 |> Extra.Document.map Msg_Users_Create
 
         Model_Users_Edit page ->
-            Pages.Users.Edit.view context page.props page.model
+            Pages.Users.Edit.view (Context shared url) page.props page.model
                 |> Extra.Document.map Msg_Users_Edit
 
         Model_Reports page ->
-            Pages.Reports.view context page.props page.model
+            Pages.Reports.view (Context shared url) page.props page.model
                 |> Extra.Document.map Msg_Reports
 
         Model_Error404 pageModel ->
-            Pages.Error404.view context pageModel
+            Pages.Error404.view (Context shared url) pageModel
                 |> Extra.Document.map Msg_Error404
 
         Model_Error500 pageModel ->
-            Pages.Error500.view context pageModel
+            Pages.Error500.view (Context shared url) pageModel
                 |> Extra.Document.map Msg_Error500
 
 
@@ -592,7 +594,7 @@ initPage args =
         Err jsonDecodeError ->
             Pages.Error500.init args.context
                 { error = jsonDecodeError
-                , page = args.pageData.component
+                , component = args.pageData.component
                 }
                 |> Tuple.mapBoth
                     Model_Error500
@@ -620,6 +622,6 @@ onPropsChangedPage args =
         Err jsonDecodeError ->
             Pages.Error500.init args.context
                 { error = jsonDecodeError
-                , page = args.pageData.component
+                , component = args.pageData.component
                 }
                 |> Tuple.mapBoth Model_Error500 (Effect.map Msg_Error500)

@@ -19,6 +19,7 @@ import Components.Dropdown
 import Components.Flash
 import Components.Icon
 import Components.Logo
+import Context exposing (Context)
 import Effect exposing (Effect)
 import Extra.Http
 import Html exposing (..)
@@ -117,7 +118,6 @@ update ({ msg, toModel, toMsg } as args) =
                 )
 
         PressedEsc ->
-            -- TODO: Make it so this also tells page to dismiss any of it's dropdowns
             return
                 ( Model { model | dropdown = Closed }
                 , Effect.none
@@ -197,7 +197,7 @@ onEscDecoder =
 view :
     { model : Model
     , toMsg : Msg -> msg
-    , context : { context | url : Url, isMobile : Bool }
+    , context : Context
     , title : String
     , user :
         { user
@@ -231,7 +231,7 @@ view props =
 viewSidebarDropdowns :
     { props
         | toMsg : Msg -> msg
-        , context : { context | url : Url, isMobile : Bool }
+        , context : Context
     }
     -> Model
     -> Html msg
@@ -244,7 +244,7 @@ viewSidebarDropdowns props (Model model) =
             Components.Dropdown.view
                 { anchor = Components.Dropdown.TopRight
                 , offset =
-                    if props.context.isMobile then
+                    if props.context.shared.isMobile then
                         ( -16, 104 )
 
                     else

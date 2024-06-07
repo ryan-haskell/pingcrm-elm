@@ -1,46 +1,48 @@
 module Effect exposing
-    ( Effect
+    ( Effect(..)
     , none, batch
-    , sendMsg, sendDelayedMsg
+    , sendMsg
     , get, post, put, delete
+    , pushUrl, replaceUrl, back, forward
     , reportJsonDecodeError
-    , pushUrl
+    , reportNavigationError
     , map
-    , switch
     )
 
 {-|
 
 @docs Effect
+
 @docs none, batch
-
-@docs sendMsg, sendDelayedMsg
-
+@docs sendMsg
 @docs get, post, put, delete
+@docs pushUrl, replaceUrl, back, forward
 
 @docs reportJsonDecodeError
-
-@docs pushUrl
+@docs reportNavigationError
 
 @docs map
-@docs switch
 
 -}
 
-import Extra.Http
 import Http
+import Inertia.Effect
 import Json.Decode
 import Json.Encode
+import Url exposing (Url)
 
 
 type Effect msg
-    = None
+    = ReportJsonDecodeError
+        { component : String
+        , error : Json.Decode.Error
+        }
+    | ReportNavigationError
+        { url : Url
+        , error : Http.Error
+        }
+    | Inertia (Inertia.Effect.Effect msg)
     | Batch (List (Effect msg))
-    | InertiaHttp (Extra.Http.Request msg)
-    | SendMsg msg
-    | SendDelayedMsg Float msg
-    | ReportJsonDecodeError { page : String, error : Json.Decode.Error }
-    | PushUrl String
 
 
 
@@ -49,7 +51,7 @@ type Effect msg
 
 none : Effect msg
 none =
-    None
+    Inertia Inertia.Effect.none
 
 
 batch : List (Effect msg) -> Effect msg
@@ -63,12 +65,7 @@ batch effects =
 
 sendMsg : msg -> Effect msg
 sendMsg msg =
-    SendMsg msg
-
-
-sendDelayedMsg : { delay : Float, msg : msg } -> Effect msg
-sendDelayedMsg { delay, msg } =
-    SendDelayedMsg delay msg
+    Inertia (Inertia.Effect.sendMsg msg)
 
 
 
@@ -77,31 +74,28 @@ sendDelayedMsg { delay, msg } =
 
 pushUrl : String -> Effect msg
 pushUrl url =
-    PushUrl url
+    Inertia (Inertia.Effect.pushUrl url)
 
 
+replaceUrl : String -> Effect msg
+replaceUrl url =
+    Inertia (Inertia.Effect.replaceUrl url)
 
--- CONSOLE
+
+back : Int -> Effect msg
+back int =
+    Inertia (Inertia.Effect.back int)
 
 
-reportJsonDecodeError :
-    { page : String
-    , error : Json.Decode.Error
-    }
-    -> Effect msg
-reportJsonDecodeError props =
-    ReportJsonDecodeError props
+forward : Int -> Effect msg
+forward int =
+    Inertia (Inertia.Effect.forward int)
 
 
 
 -- HTTP
 
 
-{-| Feels like this is only useful if you want to get data without changing the URL.
-
-Prefer `Effect.pushUrl` instead, which does normal inertia things!
-
--}
 get :
     { url : String
     , decoder : Json.Decode.Decoder props
@@ -109,23 +103,7 @@ get :
     }
     -> Effect msg
 get options =
-    let
-        decoder : Json.Decode.Decoder msg
-        decoder =
-            options.decoder
-                |> Json.Decode.map (\props -> options.onResponse (Ok props))
-
-        onFailure : Http.Error -> msg
-        onFailure httpError =
-            options.onResponse (Err httpError)
-    in
-    InertiaHttp
-        { method = "GET"
-        , url = options.url
-        , body = Http.emptyBody
-        , decoder = decoder
-        , onFailure = onFailure
-        }
+    Inertia (Inertia.Effect.get options)
 
 
 post :
@@ -136,23 +114,7 @@ post :
     }
     -> Effect msg
 post options =
-    let
-        decoder : Json.Decode.Decoder msg
-        decoder =
-            options.decoder
-                |> Json.Decode.map (\props -> options.onResponse (Ok props))
-
-        onFailure : Http.Error -> msg
-        onFailure httpError =
-            options.onResponse (Err httpError)
-    in
-    InertiaHttp
-        { method = "POST"
-        , url = options.url
-        , body = Http.jsonBody options.body
-        , decoder = decoder
-        , onFailure = onFailure
-        }
+    Inertia (Inertia.Effect.post options)
 
 
 put :
@@ -163,23 +125,7 @@ put :
     }
     -> Effect msg
 put options =
-    let
-        decoder : Json.Decode.Decoder msg
-        decoder =
-            options.decoder
-                |> Json.Decode.map (\props -> options.onResponse (Ok props))
-
-        onFailure : Http.Error -> msg
-        onFailure httpError =
-            options.onResponse (Err httpError)
-    in
-    InertiaHttp
-        { method = "PUT"
-        , url = options.url
-        , body = Http.jsonBody options.body
-        , decoder = decoder
-        , onFailure = onFailure
-        }
+    Inertia (Inertia.Effect.put options)
 
 
 delete :
@@ -189,94 +135,38 @@ delete :
     }
     -> Effect msg
 delete options =
-    let
-        decoder : Json.Decode.Decoder msg
-        decoder =
-            options.decoder
-                |> Json.Decode.map (\props -> options.onResponse (Ok props))
-
-        onFailure : Http.Error -> msg
-        onFailure httpError =
-            options.onResponse (Err httpError)
-    in
-    InertiaHttp
-        { method = "DELETE"
-        , url = options.url
-        , body = Http.emptyBody
-        , decoder = decoder
-        , onFailure = onFailure
-        }
+    Inertia (Inertia.Effect.delete options)
 
 
 
--- MAP
+-- CUSTOM
+
+
+reportJsonDecodeError : { component : String, error : Json.Decode.Error } -> Effect msg
+reportJsonDecodeError props =
+    ReportJsonDecodeError props
+
+
+reportNavigationError : { url : Url, error : Http.Error } -> Effect msg
+reportNavigationError props =
+    ReportNavigationError props
+
+
+
+-- MAPPING
 
 
 map : (a -> b) -> Effect a -> Effect b
 map fn effect =
     case effect of
-        None ->
-            None
-
         Batch effects ->
             Batch (List.map (map fn) effects)
 
-        SendMsg msg ->
-            SendMsg (fn msg)
+        ReportJsonDecodeError props ->
+            ReportJsonDecodeError props
 
-        SendDelayedMsg delay msg ->
-            SendDelayedMsg delay (fn msg)
+        ReportNavigationError props ->
+            ReportNavigationError props
 
-        InertiaHttp req ->
-            InertiaHttp (Extra.Http.map fn req)
-
-        ReportJsonDecodeError msg ->
-            ReportJsonDecodeError msg
-
-        PushUrl url ->
-            PushUrl url
-
-
-{-| An experimental way to support `Main.toCmd` functionality without
-exposing the variants for the Effect type.
-
-Keeps `Effect.none` vs `Effect.None` usage clear, and prevents
-exposing internals of module like `InertiaHttp` which is too clunky
-that it shouldn't be called.
-
-> Looked cute, might delete later!
-
--}
-switch :
-    { onNone : value
-    , onBatch : List (Effect msg) -> value
-    , onInertiaHttp : Extra.Http.Request msg -> value
-    , onSendMsg : msg -> value
-    , onSendDelayedMsg : Float -> msg -> value
-    , onReportJsonDecodeError : { page : String, error : Json.Decode.Error } -> value
-    , onPushUrl : String -> value
-    }
-    -> Effect msg
-    -> value
-switch handlers effect =
-    case effect of
-        None ->
-            handlers.onNone
-
-        Batch effects ->
-            handlers.onBatch effects
-
-        SendMsg msg ->
-            handlers.onSendMsg msg
-
-        SendDelayedMsg delay msg ->
-            handlers.onSendDelayedMsg delay msg
-
-        InertiaHttp req ->
-            handlers.onInertiaHttp req
-
-        ReportJsonDecodeError msg ->
-            handlers.onReportJsonDecodeError msg
-
-        PushUrl url ->
-            handlers.onPushUrl url
+        Inertia inertiaEffect ->
+            Inertia (Inertia.Effect.map fn inertiaEffect)

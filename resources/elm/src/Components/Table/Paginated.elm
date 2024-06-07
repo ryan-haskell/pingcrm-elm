@@ -341,7 +341,7 @@ viewOverlay props =
             Components.Dropdown.view
                 { anchor = Components.Dropdown.TopLeft
                 , offset =
-                    if props.context.isMobile then
+                    if props.context.shared.isMobile then
                         ( 16, 265 )
 
                     else

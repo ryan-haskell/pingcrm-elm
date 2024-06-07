@@ -1,9 +1,10 @@
 module Context exposing (Context)
 
+import Shared
 import Url exposing (Url)
 
 
 type alias Context =
-    { url : Url
-    , isMobile : Bool
+    { shared : Shared.Model
+    , url : Url
     }
