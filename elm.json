@@ -1,8 +1,7 @@
 {
     "type": "application",
     "source-directories": [
-        "resources/elm/src",
-        "../elm-inertia/src"
+        "resources/elm/src"
     ],
     "elm-version": "0.19.1",
     "dependencies": {
@@ -13,7 +12,8 @@
             "elm/http": "2.0.0",
             "elm/json": "1.1.3",
             "elm/svg": "1.0.1",
-            "elm/url": "1.0.0"
+            "elm/url": "1.0.0",
+            "ryan-haskell/elm-inertia": "1.0.0"
         },
         "indirect": {
             "elm/bytes": "1.0.8",

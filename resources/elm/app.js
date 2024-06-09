@@ -1,6 +1,6 @@
 import '../css/app.css'
 import Main from './src/Main.elm'
-import { createInertiaApp } from './src/elm-inertia'
+import { createInertiaApp } from 'elm-inertia'
 
 let app = createInertiaApp({
   init: Main.init,
