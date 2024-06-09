@@ -1,4 +1,4 @@
-module Pages.Users.Create exposing
+module Page.Contacts.Create exposing
     ( Props, decoder
     , Model, init, onPropsChanged
     , Msg, update, subscriptions
@@ -17,7 +17,6 @@ module Pages.Users.Create exposing
 import Browser exposing (Document)
 import Components.Form
 import Components.Header
-import Context exposing (Context)
 import Effect exposing (Effect)
 import Extra.Http
 import Extra.Json.Encode as E
@@ -28,8 +27,10 @@ import Http
 import Json.Decode
 import Json.Encode
 import Layouts.Sidebar
+import Shared
 import Shared.Auth exposing (Auth)
 import Shared.Flash exposing (Flash)
+import Url exposing (Url)
 
 
 
@@ -40,15 +41,17 @@ type alias Props =
     { auth : Auth
     , flash : Flash
     , errors : Errors
+    , organizations : List Organization
     }
 
 
 decoder : Json.Decode.Decoder Props
 decoder =
-    Json.Decode.map3 Props
+    Json.Decode.map4 Props
         (Json.Decode.field "auth" Shared.Auth.decoder)
         (Json.Decode.field "flash" Shared.Flash.decoder)
         (Json.Decode.field "errors" errorsDecoder)
+        (Json.Decode.field "organizations" (Json.Decode.list organizationDecoder))
 
 
 type alias Errors =
@@ -75,6 +78,19 @@ hasAnError errors =
         ]
 
 
+type alias Organization =
+    { id : Int
+    , name : String
+    }
+
+
+organizationDecoder : Json.Decode.Decoder Organization
+organizationDecoder =
+    Json.Decode.map2 Organization
+        (Json.Decode.field "id" Json.Decode.int)
+        (Json.Decode.field "name" Json.Decode.string)
+
+
 
 -- MODEL
 
@@ -84,9 +100,14 @@ type alias Model =
     , isSubmittingForm : Bool
     , firstName : String
     , lastName : String
+    , organizationId : String
     , email : String
-    , password : String
-    , owner : String
+    , phone : String
+    , address : String
+    , city : String
+    , region : String
+    , country : String
+    , postalCode : String
     , errors : Errors
     }
 
@@ -94,28 +115,38 @@ type alias Model =
 type Field
     = FirstName
     | LastName
+    | OrganizationId
     | Email
-    | Password
-    | Owner
+    | Phone
+    | Address
+    | City
+    | Region
+    | Country
+    | PostalCode
 
 
-init : Context -> Props -> ( Model, Effect Msg )
-init ctx props =
+init : Shared.Model -> Url -> Props -> ( Model, Effect Msg )
+init shared url props =
     ( { sidebar = Layouts.Sidebar.init { flash = props.flash }
       , isSubmittingForm = False
       , firstName = ""
       , lastName = ""
+      , organizationId = ""
       , email = ""
-      , password = ""
-      , owner = "no"
+      , phone = ""
+      , address = ""
+      , city = ""
+      , region = ""
+      , country = ""
+      , postalCode = ""
       , errors = props.errors
       }
     , Effect.none
     )
 
 
-onPropsChanged : Context -> Props -> Model -> ( Model, Effect Msg )
-onPropsChanged ctx props model =
+onPropsChanged : Shared.Model -> Url -> Props -> Model -> ( Model, Effect Msg )
+onPropsChanged shared url props model =
     ( { model
         | sidebar = Layouts.Sidebar.withFlash props.flash model.sidebar
         , errors = props.errors
@@ -135,8 +166,8 @@ type Msg
     | CreateApiResponded (Result Http.Error Props)
 
 
-update : Context -> Props -> Msg -> Model -> ( Model, Effect Msg )
-update ctx props msg ({ errors } as model) =
+update : Shared.Model -> Url -> Props -> Msg -> Model -> ( Model, Effect Msg )
+update shared url props msg ({ errors } as model) =
     case msg of
         Sidebar sidebarMsg ->
             Layouts.Sidebar.update
@@ -162,6 +193,9 @@ update ctx props msg ({ errors } as model) =
             , Effect.none
             )
 
+        ChangedInput OrganizationId value ->
+            ( { model | organizationId = value }, Effect.none )
+
         ChangedInput Email value ->
             ( { model
                 | email = value
@@ -170,11 +204,23 @@ update ctx props msg ({ errors } as model) =
             , Effect.none
             )
 
-        ChangedInput Password value ->
-            ( { model | password = value }, Effect.none )
+        ChangedInput Phone value ->
+            ( { model | phone = value }, Effect.none )
 
-        ChangedInput Owner value ->
-            ( { model | owner = value }, Effect.none )
+        ChangedInput Address value ->
+            ( { model | address = value }, Effect.none )
+
+        ChangedInput City value ->
+            ( { model | city = value }, Effect.none )
+
+        ChangedInput Region value ->
+            ( { model | region = value }, Effect.none )
+
+        ChangedInput Country value ->
+            ( { model | country = value }, Effect.none )
+
+        ChangedInput PostalCode value ->
+            ( { model | postalCode = value }, Effect.none )
 
         SubmittedForm ->
             let
@@ -183,17 +229,19 @@ update ctx props msg ({ errors } as model) =
                     Json.Encode.object
                         [ ( "first_name", E.toStringOrNull model.firstName )
                         , ( "last_name", E.toStringOrNull model.lastName )
+                        , ( "organization_id", E.toIntOrNull model.organizationId )
                         , ( "email", E.toStringOrNull model.email )
-                        , ( "password", E.toStringOrNull model.password )
-                        , ( "owner", E.toYesOrNoBool model.owner )
-
-                        -- TODO: Photo
-                        , ( "photo", Json.Encode.null )
+                        , ( "phone", E.toStringOrNull model.phone )
+                        , ( "address", E.toStringOrNull model.address )
+                        , ( "city", E.toStringOrNull model.city )
+                        , ( "region", E.toStringOrNull model.region )
+                        , ( "country", E.toStringOrNull model.country )
+                        , ( "postal_code", E.toStringOrNull model.postalCode )
                         ]
             in
             ( { model | isSubmittingForm = True }
             , Effect.post
-                { url = "/users"
+                { url = "/contacts"
                 , body = Http.jsonBody body
                 , decoder = decoder
                 , onResponse = CreateApiResponded
@@ -214,17 +262,12 @@ update ctx props msg ({ errors } as model) =
             )
 
 
-showFormError : String -> Props -> Props
-showFormError reason props =
-    { props | flash = { success = Nothing, error = Just reason } }
-
-
 
 -- SUBSCRIPTIONS
 
 
-subscriptions : Context -> Props -> Model -> Sub Msg
-subscriptions ctx props model =
+subscriptions : Shared.Model -> Url -> Props -> Model -> Sub Msg
+subscriptions shared url props model =
     Sub.batch
         [ Layouts.Sidebar.subscriptions { model = model.sidebar, toMsg = Sidebar }
         ]
@@ -234,18 +277,19 @@ subscriptions ctx props model =
 -- VIEW
 
 
-view : Context -> Props -> Model -> Document Msg
-view ctx props model =
+view : Shared.Model -> Url -> Props -> Model -> Document Msg
+view shared url props model =
     Layouts.Sidebar.view
         { model = model.sidebar
         , toMsg = Sidebar
-        , context = ctx
-        , title = "Create User"
+        , shared = shared
+        , url = url
+        , title = "Create Contact"
         , user = props.auth.user
         , content =
             [ Components.Header.view
-                { label = "Users"
-                , url = "/users"
+                { label = "Contacts"
+                , url = "/contacts"
                 , content = "Create"
                 }
             , viewCreateForm props model
@@ -262,7 +306,7 @@ viewCreateForm : Props -> Model -> Html Msg
 viewCreateForm props model =
     Components.Form.create
         { onSubmit = SubmittedForm
-        , noun = "User"
+        , noun = "Contact"
         , isSubmittingForm = model.isSubmittingForm
         , inputs =
             [ Components.Form.text
@@ -281,6 +325,19 @@ viewCreateForm props model =
                 , error = model.errors.lastName
                 , onInput = ChangedInput LastName
                 }
+            , Components.Form.select
+                { isDisabled = model.isSubmittingForm
+                , id = "organization"
+                , label = "Organization"
+                , value = model.organizationId
+                , error = Nothing
+                , onInput = ChangedInput OrganizationId
+                , options =
+                    ( "", "" )
+                        :: List.map
+                            (\org -> ( String.fromInt org.id, org.name ))
+                            props.organizations
+                }
             , Components.Form.text
                 { isDisabled = model.isSubmittingForm
                 , id = "email"
@@ -289,25 +346,58 @@ viewCreateForm props model =
                 , error = model.errors.email
                 , onInput = ChangedInput Email
                 }
-            , Components.Form.password
+            , Components.Form.text
                 { isDisabled = model.isSubmittingForm
-                , id = "password"
-                , label = "Password"
-                , value = model.password
+                , id = "phone"
+                , label = "Phone"
+                , value = model.phone
                 , error = Nothing
-                , onInput = ChangedInput Password
+                , onInput = ChangedInput Phone
+                }
+            , Components.Form.text
+                { isDisabled = model.isSubmittingForm
+                , id = "address"
+                , label = "Address"
+                , value = model.address
+                , error = Nothing
+                , onInput = ChangedInput Address
+                }
+            , Components.Form.text
+                { isDisabled = model.isSubmittingForm
+                , id = "city"
+                , label = "City"
+                , value = model.city
+                , error = Nothing
+                , onInput = ChangedInput City
+                }
+            , Components.Form.text
+                { isDisabled = model.isSubmittingForm
+                , id = "region"
+                , label = "Province/State"
+                , value = model.region
+                , error = Nothing
+                , onInput = ChangedInput Region
                 }
             , Components.Form.select
                 { isDisabled = model.isSubmittingForm
-                , id = "owner"
-                , label = "Owner"
-                , value = model.owner
+                , id = "country"
+                , label = "Country"
+                , value = model.country
                 , error = Nothing
-                , onInput = ChangedInput Owner
+                , onInput = ChangedInput Country
                 , options =
-                    [ ( "yes", "Yes" )
-                    , ( "no", "No" )
+                    [ ( "", "" )
+                    , ( "CA", "Canada" )
+                    , ( "US", "United States" )
                     ]
+                }
+            , Components.Form.text
+                { isDisabled = model.isSubmittingForm
+                , id = "postalCode"
+                , label = "Postal code"
+                , value = model.postalCode
+                , error = Nothing
+                , onInput = ChangedInput PostalCode
                 }
             ]
         }

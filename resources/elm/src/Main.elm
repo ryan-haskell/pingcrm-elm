@@ -6,17 +6,17 @@ import Inertia
 import Inertia.Effect
 import Interop
 import Json.Decode
-import Pages
+import Page
 import Shared
 import Url exposing (Url)
 
 
 type alias Model =
-    Inertia.Model Pages.Model Shared.Model
+    Inertia.Model Page.Model Shared.Model
 
 
 type alias Msg =
-    Inertia.Msg Pages.Msg Shared.Msg
+    Inertia.Msg Page.Msg Shared.Msg
 
 
 main : Inertia.Program Model Msg
@@ -29,11 +29,11 @@ main =
             , onNavigationError = Shared.onNavigationError
             }
         , page =
-            { init = Pages.init
-            , update = Pages.update
-            , subscriptions = Pages.subscriptions
-            , view = Pages.view
-            , onPropsChanged = Pages.onPropsChanged
+            { init = Page.init
+            , update = Page.update
+            , subscriptions = Page.subscriptions
+            , view = Page.view
+            , onPropsChanged = Page.onPropsChanged
             }
         , interop =
             { decoder = Interop.decoder

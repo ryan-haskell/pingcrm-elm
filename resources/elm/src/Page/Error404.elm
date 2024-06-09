@@ -1,12 +1,10 @@
-module Pages.Error404 exposing
-    ( Props
-    , Model, Msg
+module Page.Error404 exposing
+    ( Model, Msg
     , init, subscriptions, update, view
     )
 
 {-|
 
-@docs Props
 @docs Model, Msg
 @docs init, subscriptions, update, view
 
@@ -14,20 +12,12 @@ module Pages.Error404 exposing
 
 import Browser exposing (Document)
 import Components.ErrorPage
-import Context exposing (Context)
 import Effect exposing (Effect)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Json.Decode
-
-
-
--- PROPS
-
-
-type alias Props =
-    { page : String
-    }
+import Shared
+import Url exposing (Url)
 
 
 
@@ -35,14 +25,12 @@ type alias Props =
 
 
 type alias Model =
-    { props : Props
-    }
+    {}
 
 
-init : Context -> Props -> ( Model, Effect Msg )
-init ctx props =
-    ( { props = props
-      }
+init : Shared.Model -> Url -> ( Model, Effect Msg )
+init shared url =
+    ( {}
     , Effect.none
     )
 
@@ -55,15 +43,15 @@ type Msg
     = DoNothing
 
 
-update : Context -> Msg -> Model -> ( Model, Effect Msg )
-update ctx msg model =
+update : Shared.Model -> Url -> Msg -> Model -> ( Model, Effect Msg )
+update shared url msg model =
     case msg of
         DoNothing ->
             ( model, Effect.none )
 
 
-subscriptions : Context -> Model -> Sub Msg
-subscriptions ctx model =
+subscriptions : Shared.Model -> Url -> Model -> Sub Msg
+subscriptions shared url model =
     Sub.none
 
 
@@ -71,12 +59,12 @@ subscriptions ctx model =
 -- VIEW
 
 
-view : Context -> Model -> Document Msg
-view ctx { props } =
+view : Shared.Model -> Url -> Model -> Document Msg
+view shared url model =
     { title = "404 | PingCRM"
     , body =
         Components.ErrorPage.view
             { title = "404"
-            , message = props.page
+            , message = url.path
             }
     }

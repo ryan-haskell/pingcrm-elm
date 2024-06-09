@@ -19,7 +19,6 @@ import Components.Dropdown
 import Components.Flash
 import Components.Icon
 import Components.Logo
-import Context exposing (Context)
 import Effect exposing (Effect)
 import Extra.Http
 import Html exposing (..)
@@ -29,6 +28,7 @@ import Http
 import Interop
 import Json.Decode
 import Json.Encode
+import Shared
 import Shared.Flash exposing (Flash)
 import Url exposing (Url)
 
@@ -197,7 +197,8 @@ onEscDecoder =
 view :
     { model : Model
     , toMsg : Msg -> msg
-    , context : Context
+    , shared : Shared.Model
+    , url : Url
     , title : String
     , user :
         { user
@@ -231,7 +232,8 @@ view props =
 viewSidebarDropdowns :
     { props
         | toMsg : Msg -> msg
-        , context : Context
+        , shared : Shared.Model
+        , url : Url
     }
     -> Model
     -> Html msg
@@ -244,7 +246,7 @@ viewSidebarDropdowns props (Model model) =
             Components.Dropdown.view
                 { anchor = Components.Dropdown.TopRight
                 , offset =
-                    if props.context.shared.isMobile then
+                    if props.shared.isMobile then
                         ( -16, 104 )
 
                     else
@@ -262,9 +264,9 @@ viewSidebarDropdowns props (Model model) =
                 }
 
 
-viewMobileNavMenu : { props | context : { context | url : Url } } -> Html msg
-viewMobileNavMenu { context } =
-    div [ class "mt-2 px-8 py-4 bg-indigo-800 rounded shadow-lg" ] (viewSidebarLinks context.url)
+viewMobileNavMenu : { props | url : Url } -> Html msg
+viewMobileNavMenu { url } =
+    div [ class "mt-2 px-8 py-4 bg-indigo-800 rounded shadow-lg" ] (viewSidebarLinks url)
 
 
 viewSidebarLinks : Url -> List (Html msg)
@@ -366,15 +368,15 @@ viewNavbar { user, toMsg } =
 viewSidebarAndMainContent :
     { props
         | content : List (Html msg)
-        , context : { context | url : Url }
+        , url : Url
         , toMsg : Msg -> msg
     }
     -> Model
     -> Html msg
-viewSidebarAndMainContent { content, context, toMsg } (Model model) =
+viewSidebarAndMainContent { content, url, toMsg } (Model model) =
     div [ class "md:flex md:grow md:overflow-hidden" ]
         [ div [ class "hidden shrink-0 p-12 w-56 bg-indigo-800 overflow-y-auto md:block" ]
-            (viewSidebarLinks context.url)
+            (viewSidebarLinks url)
         , div
             [ class "px-4 py-8 md:flex-1 md:p-12 md:overflow-y-auto"
             , Attr.id "scroll-region"

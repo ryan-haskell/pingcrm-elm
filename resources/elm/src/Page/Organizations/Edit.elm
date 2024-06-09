@@ -1,4 +1,4 @@
-module Pages.Organizations.Edit exposing
+module Page.Organizations.Edit exposing
     ( Props, decoder
     , Model, init, onPropsChanged
     , Msg, update, subscriptions
@@ -19,7 +19,6 @@ import Components.Form
 import Components.Header
 import Components.RestoreBanner
 import Components.Table
-import Context exposing (Context)
 import Effect exposing (Effect)
 import Extra.Http
 import Extra.Json.Decode
@@ -31,8 +30,10 @@ import Http
 import Json.Decode
 import Json.Encode
 import Layouts.Sidebar
+import Shared
 import Shared.Auth exposing (Auth)
 import Shared.Flash exposing (Flash)
+import Url exposing (Url)
 import Url.Builder
 
 
@@ -156,8 +157,8 @@ type Field
     | PostalCode
 
 
-init : Context -> Props -> ( Model, Effect Msg )
-init ctx props =
+init : Shared.Model -> Url -> Props -> ( Model, Effect Msg )
+init shared url props =
     ( { sidebar = Layouts.Sidebar.init { flash = props.flash }
       , isSubmittingForm = False
       , name = props.organization.name
@@ -174,8 +175,8 @@ init ctx props =
     )
 
 
-onPropsChanged : Context -> Props -> Model -> ( Model, Effect Msg )
-onPropsChanged ctx props model =
+onPropsChanged : Shared.Model -> Url -> Props -> Model -> ( Model, Effect Msg )
+onPropsChanged shared url props model =
     ( { model
         | errors = props.errors
         , sidebar = Layouts.Sidebar.withFlash props.flash model.sidebar
@@ -199,8 +200,8 @@ type Msg
     | RestoreResponded (Result Http.Error ())
 
 
-update : Context -> Props -> Msg -> Model -> ( Model, Effect Msg )
-update ctx props msg ({ errors } as model) =
+update : Shared.Model -> Url -> Props -> Msg -> Model -> ( Model, Effect Msg )
+update shared url props msg ({ errors } as model) =
     case msg of
         Sidebar sidebarMsg ->
             Layouts.Sidebar.update
@@ -342,8 +343,8 @@ showFormError reason props =
 -- SUBSCRIPTIONS
 
 
-subscriptions : Context -> Props -> Model -> Sub Msg
-subscriptions ctx props model =
+subscriptions : Shared.Model -> Url -> Props -> Model -> Sub Msg
+subscriptions shared url props model =
     Sub.batch
         [ Layouts.Sidebar.subscriptions { model = model.sidebar, toMsg = Sidebar }
         ]
@@ -353,12 +354,13 @@ subscriptions ctx props model =
 -- VIEW
 
 
-view : Context -> Props -> Model -> Document Msg
-view ctx props model =
+view : Shared.Model -> Url -> Props -> Model -> Document Msg
+view shared url props model =
     Layouts.Sidebar.view
         { model = model.sidebar
         , toMsg = Sidebar
-        , context = ctx
+        , shared = shared
+        , url = url
         , title = props.organization.name
         , user = props.auth.user
         , content =

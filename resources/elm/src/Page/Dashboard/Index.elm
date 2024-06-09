@@ -1,4 +1,4 @@
-module Pages.Reports exposing
+module Page.Dashboard.Index exposing
     ( Props, decoder
     , Model, init, onPropsChanged
     , Msg, update, subscriptions
@@ -15,14 +15,15 @@ module Pages.Reports exposing
 -}
 
 import Browser exposing (Document)
-import Context exposing (Context)
 import Effect exposing (Effect)
 import Html exposing (..)
 import Html.Attributes exposing (attribute, class, href)
 import Json.Decode
 import Layouts.Sidebar
+import Shared
 import Shared.Auth exposing (Auth)
 import Shared.Flash exposing (Flash)
+import Url exposing (Url)
 
 
 
@@ -51,17 +52,17 @@ type alias Model =
     }
 
 
-init : Context -> Props -> ( Model, Effect Msg )
-init ctx props =
+init : Shared.Model -> Url -> Props -> ( Model, Effect Msg )
+init shared url props =
     ( { sidebar = Layouts.Sidebar.init { flash = props.flash }
       }
     , Effect.none
     )
 
 
-onPropsChanged : Context -> Props -> Model -> ( Model, Effect Msg )
-onPropsChanged ctx props model =
-    ( model
+onPropsChanged : Shared.Model -> Url -> Props -> Model -> ( Model, Effect Msg )
+onPropsChanged shared url props model =
+    ( { model | sidebar = Layouts.Sidebar.withFlash props.flash model.sidebar }
     , Effect.none
     )
 
@@ -74,8 +75,8 @@ type Msg
     = Sidebar Layouts.Sidebar.Msg
 
 
-update : Context -> Props -> Msg -> Model -> ( Model, Effect Msg )
-update ctx props msg model =
+update : Shared.Model -> Url -> Props -> Msg -> Model -> ( Model, Effect Msg )
+update shared url props msg model =
     case msg of
         Sidebar sidebarMsg ->
             Layouts.Sidebar.update
@@ -86,8 +87,8 @@ update ctx props msg model =
                 }
 
 
-subscriptions : Context -> Props -> Model -> Sub Msg
-subscriptions ctx props model =
+subscriptions : Shared.Model -> Url -> Props -> Model -> Sub Msg
+subscriptions shared url props model =
     Sub.batch
         [ Layouts.Sidebar.subscriptions { model = model.sidebar, toMsg = Sidebar }
         ]
@@ -97,23 +98,25 @@ subscriptions ctx props model =
 -- VIEW
 
 
-view : Context -> Props -> Model -> Document Msg
-view ctx props model =
+view : Shared.Model -> Url -> Props -> Model -> Document Msg
+view shared url props model =
     Layouts.Sidebar.view
         { model = model.sidebar
         , toMsg = Sidebar
-        , context = ctx
-        , title = "Reports"
+        , shared = shared
+        , url = url
+        , title = "Dashboard"
         , user = props.auth.user
         , content =
-            [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Reports" ]
-            , p [ class "mb-4 leading-normal" ]
-                [ text "The \"Reports\" feature is under legal investigation at this time. "
-                ]
-            , p [ class "mb-4 leading-normal" ]
-                [ text "Our legal team would like to notify customers that their report data was not sold to fund our separate venture, \"Hamster Yacht Incorporated\". These allegations are unverified and baseless." ]
+            [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Dashboard" ]
             , p [ class "mb-8 leading-normal" ]
-                [ text "However, it is true that the hamsters have been trained to drive the fleet of mini-yachts. Thank you."
+                [ text "Hey there! Welcome to Ping CRM, a demo app designed to help illustrate how "
+                , a
+                    [ class "text-indigo-500 hover:text-orange-600 underline"
+                    , href "https://inertiajs.com"
+                    ]
+                    [ text "Inertia.js" ]
+                , text " works."
                 ]
             ]
         , overlays = []

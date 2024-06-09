@@ -1,4 +1,4 @@
-module Pages.Users exposing
+module Page.Users.Index exposing
     ( Props, decoder
     , Model, init, onPropsChanged
     , Msg, update, subscriptions
@@ -16,14 +16,15 @@ module Pages.Users exposing
 
 import Browser exposing (Document)
 import Components.Table.Paginated
-import Context exposing (Context)
 import Effect exposing (Effect)
 import Html exposing (..)
 import Html.Attributes exposing (attribute, class, href)
 import Json.Decode
 import Layouts.Sidebar
+import Shared
 import Shared.Auth exposing (Auth)
 import Shared.Flash exposing (Flash)
+import Url exposing (Url)
 
 
 
@@ -74,17 +75,17 @@ type alias Model =
     }
 
 
-init : Context -> Props -> ( Model, Effect Msg )
-init ctx props =
+init : Shared.Model -> Url -> Props -> ( Model, Effect Msg )
+init shared url props =
     ( { sidebar = Layouts.Sidebar.init { flash = props.flash }
-      , table = Components.Table.Paginated.init ctx
+      , table = Components.Table.Paginated.init url
       }
     , Effect.none
     )
 
 
-onPropsChanged : Context -> Props -> Model -> ( Model, Effect Msg )
-onPropsChanged ctx props model =
+onPropsChanged : Shared.Model -> Url -> Props -> Model -> ( Model, Effect Msg )
+onPropsChanged shared url props model =
     ( model
     , Effect.none
     )
@@ -99,8 +100,8 @@ type Msg
     | Table Components.Table.Paginated.Msg
 
 
-update : Context -> Props -> Msg -> Model -> ( Model, Effect Msg )
-update ctx props msg model =
+update : Shared.Model -> Url -> Props -> Msg -> Model -> ( Model, Effect Msg )
+update shared url props msg model =
     case msg of
         Sidebar sidebarMsg ->
             Layouts.Sidebar.update
@@ -119,8 +120,8 @@ update ctx props msg model =
                 }
 
 
-subscriptions : Context -> Props -> Model -> Sub Msg
-subscriptions ctx props model =
+subscriptions : Shared.Model -> Url -> Props -> Model -> Sub Msg
+subscriptions shared url props model =
     Sub.batch
         [ Layouts.Sidebar.subscriptions { model = model.sidebar, toMsg = Sidebar }
         ]
@@ -130,18 +131,20 @@ subscriptions ctx props model =
 -- VIEW
 
 
-view : Context -> Props -> Model -> Document Msg
-view ctx props model =
+view : Shared.Model -> Url -> Props -> Model -> Document Msg
+view shared url props model =
     Layouts.Sidebar.view
         { model = model.sidebar
         , toMsg = Sidebar
-        , context = ctx
+        , shared = shared
+        , url = url
         , title = "Users"
         , user = props.auth.user
         , content =
             [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Users" ]
             , Components.Table.Paginated.view
-                { context = ctx
+                { shared = shared
+                , url = url
                 , model = model.table
                 , toMsg = Table
                 , name = "User"
@@ -154,7 +157,8 @@ view ctx props model =
             ]
         , overlays =
             [ Components.Table.Paginated.viewOverlay
-                { context = ctx
+                { shared = shared
+                , url = url
                 , model = model.table
                 , toMsg = Table
                 , baseUrl = "users"

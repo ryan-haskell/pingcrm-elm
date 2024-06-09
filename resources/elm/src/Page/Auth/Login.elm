@@ -1,4 +1,4 @@
-module Pages.Login exposing
+module Page.Auth.Login exposing
     ( Props, decoder
     , Model, init, onPropsChanged
     , Msg, update, subscriptions
@@ -16,7 +16,6 @@ module Pages.Login exposing
 
 import Browser exposing (Document)
 import Components.Logo
-import Context exposing (Context)
 import Effect exposing (Effect)
 import Extra.Http
 import Html exposing (..)
@@ -25,7 +24,9 @@ import Html.Events
 import Http
 import Json.Decode
 import Json.Encode
+import Shared
 import Shared.Auth exposing (Auth)
+import Url exposing (Url)
 
 
 
@@ -54,8 +55,8 @@ type alias Model =
     }
 
 
-init : Context -> Props -> ( Model, Effect Msg )
-init ctx props =
+init : Shared.Model -> Url -> Props -> ( Model, Effect Msg )
+init shared url props =
     ( { email = "johndoe@example.com"
       , password = "secret"
       , remember = True
@@ -66,8 +67,8 @@ init ctx props =
     )
 
 
-onPropsChanged : Context -> Props -> Model -> ( Model, Effect Msg )
-onPropsChanged ctx props model =
+onPropsChanged : Shared.Model -> Url -> Props -> Model -> ( Model, Effect Msg )
+onPropsChanged shared url props model =
     ( model
     , Effect.none
     )
@@ -96,8 +97,8 @@ loginResponseDecoder =
         (Json.Decode.maybe (Json.Decode.at [ "errors", "email" ] Json.Decode.string))
 
 
-update : Context -> Props -> Msg -> Model -> ( Model, Effect Msg )
-update ctx props msg model =
+update : Shared.Model -> Url -> Props -> Msg -> Model -> ( Model, Effect Msg )
+update shared url props msg model =
     case msg of
         EmailChanged value ->
             ( { model | email = value, emailError = Nothing }
@@ -144,8 +145,8 @@ update ctx props msg model =
             )
 
 
-subscriptions : Context -> Props -> Model -> Sub Msg
-subscriptions ctx props model =
+subscriptions : Shared.Model -> Url -> Props -> Model -> Sub Msg
+subscriptions shared url props model =
     Sub.none
 
 
@@ -153,8 +154,8 @@ subscriptions ctx props model =
 -- VIEW
 
 
-view : Context -> Props -> Model -> Document Msg
-view ctx props model =
+view : Shared.Model -> Url -> Props -> Model -> Document Msg
+view shared url props model =
     { title = "Login - Ping CRM"
     , body =
         [ div [ class "flex items-center justify-center p-6 min-h-screen bg-indigo-800" ]

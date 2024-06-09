@@ -18,12 +18,13 @@ module Components.Table.Paginated exposing
 import Components.Dropdown
 import Components.Icon
 import Components.Table
-import Context exposing (Context)
 import Effect exposing (Effect)
 import Extra.Url
 import Html exposing (..)
 import Html.Attributes as Attr exposing (class, href, style)
 import Html.Events
+import Shared
+import Url exposing (Url)
 import Url.Builder
 
 
@@ -39,8 +40,8 @@ type Model
         }
 
 
-init : Context -> Model
-init { url } =
+init : Url -> Model
+init url =
     Model
         { search = Extra.Url.getQueryParameter "search" url |> Maybe.withDefault ""
         , trashed = Extra.Url.getQueryParameter "trashed" url |> Maybe.withDefault ""
@@ -141,7 +142,8 @@ toFilterQueryParameters (Model model) =
 
 
 view :
-    { context : Context
+    { shared : Shared.Model
+    , url : Url
     , model : Model
     , toMsg : Msg -> msg
     , name : String
@@ -161,7 +163,8 @@ view props =
 
 
 type alias Props data msg =
-    { context : Context
+    { shared : Shared.Model
+    , url : Url
     , model : Model
     , toMsg : Msg -> msg
     , name : String
@@ -255,7 +258,7 @@ viewTableFooter props =
     let
         currentPage : Int
         currentPage =
-            Extra.Url.getQueryParameter "page" props.context.url
+            Extra.Url.getQueryParameter "page" props.url
                 |> Maybe.andThen String.toInt
                 |> Maybe.withDefault 1
 
@@ -325,7 +328,8 @@ viewTableFooter props =
 
 
 viewOverlay :
-    { context : Context
+    { shared : Shared.Model
+    , url : Url
     , model : Model
     , toMsg : Msg -> msg
     , baseUrl : String
@@ -341,7 +345,7 @@ viewOverlay props =
             Components.Dropdown.view
                 { anchor = Components.Dropdown.TopLeft
                 , offset =
-                    if props.context.shared.isMobile then
+                    if props.shared.isMobile then
                         ( 16, 265 )
 
                     else
