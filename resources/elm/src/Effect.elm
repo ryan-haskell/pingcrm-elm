@@ -1,13 +1,14 @@
 module Effect exposing
-    ( Effect(..)
+    ( Effect
     , none, batch
     , sendMsg
     , get, post, put, delete
     , pushUrl, replaceUrl, back, forward
     , load, reload, reloadAndSkipCache
+    , map
+    , CustomEffect, mapCustomEffect, switch
     , reportJsonDecodeError
     , reportNavigationError
-    , map
     )
 
 {-|
@@ -16,14 +17,17 @@ module Effect exposing
 
 @docs none, batch
 @docs sendMsg
+
 @docs get, post, put, delete
+
 @docs pushUrl, replaceUrl, back, forward
 @docs load, reload, reloadAndSkipCache
 
+@docs map
+
+@docs CustomEffect, mapCustomEffect, switch
 @docs reportJsonDecodeError
 @docs reportNavigationError
-
-@docs map
 
 -}
 
@@ -34,79 +38,27 @@ import Json.Encode
 import Url exposing (Url)
 
 
-type Effect msg
-    = Batch (List (Effect msg))
-    | ReportJsonDecodeError
-        { component : String
-        , error : Json.Decode.Error
-        }
-    | ReportNavigationError
-        { url : Url
-        , error : Http.Error
-        }
-    | Inertia (Inertia.Effect.Effect msg)
+
+-- EFFECTS
 
 
-
--- BASICS
+type alias Effect msg =
+    Inertia.Effect.Effect (CustomEffect msg) msg
 
 
 none : Effect msg
 none =
-    Inertia Inertia.Effect.none
+    Inertia.Effect.none
 
 
 batch : List (Effect msg) -> Effect msg
-batch effects =
-    Batch effects
-
-
-
--- MESSAGES
+batch =
+    Inertia.Effect.batch
 
 
 sendMsg : msg -> Effect msg
-sendMsg msg =
-    Inertia (Inertia.Effect.sendMsg msg)
-
-
-
--- URL NAVIGATION
-
-
-pushUrl : String -> Effect msg
-pushUrl url =
-    Inertia (Inertia.Effect.pushUrl url)
-
-
-replaceUrl : String -> Effect msg
-replaceUrl url =
-    Inertia (Inertia.Effect.replaceUrl url)
-
-
-back : Int -> Effect msg
-back int =
-    Inertia (Inertia.Effect.back int)
-
-
-forward : Int -> Effect msg
-forward int =
-    Inertia (Inertia.Effect.forward int)
-
-
-load : String -> Effect msg
-load url =
-    Inertia (Inertia.Effect.load url)
-
-
-reload : Effect msg
-reload =
-    Inertia Inertia.Effect.reload
-
-
-reloadAndSkipCache : Effect msg
-reloadAndSkipCache =
-    Inertia Inertia.Effect.reloadAndSkipCache
+sendMsg =
+    Inertia.Effect.sendMsg
 
 
 
@@ -119,8 +71,8 @@ get :
     , onResponse : Result Http.Error props -> msg
     }
     -> Effect msg
-get options =
-    Inertia (Inertia.Effect.get options)
+get =
+    Inertia.Effect.get
 
 
 post :
@@ -130,8 +82,8 @@ post :
     , onResponse : Result Http.Error props -> msg
     }
     -> Effect msg
-post options =
-    Inertia (Inertia.Effect.post options)
+post =
+    Inertia.Effect.post
 
 
 put :
@@ -141,8 +93,19 @@ put :
     , onResponse : Result Http.Error props -> msg
     }
     -> Effect msg
-put options =
-    Inertia (Inertia.Effect.put options)
+put =
+    Inertia.Effect.put
+
+
+patch :
+    { url : String
+    , body : Http.Body
+    , decoder : Json.Decode.Decoder props
+    , onResponse : Result Http.Error props -> msg
+    }
+    -> Effect msg
+patch =
+    Inertia.Effect.patch
 
 
 delete :
@@ -151,39 +114,113 @@ delete :
     , onResponse : Result Http.Error props -> msg
     }
     -> Effect msg
-delete options =
-    Inertia (Inertia.Effect.delete options)
+delete =
+    Inertia.Effect.delete
+
+
+request :
+    { method : String
+    , url : String
+    , body : Http.Body
+    , decoder : Json.Decode.Decoder msg
+    , onFailure : Http.Error -> msg
+    , headers : List Http.Header
+    , timeout : Maybe Float
+    , tracker : Maybe String
+    }
+    -> Effect msg
+request =
+    Inertia.Effect.request
 
 
 
--- CUSTOM
+-- URL NAVIGATION
 
 
-reportJsonDecodeError : { component : String, error : Json.Decode.Error } -> Effect msg
-reportJsonDecodeError props =
-    ReportJsonDecodeError props
+pushUrl : String -> Effect msg
+pushUrl =
+    Inertia.Effect.pushUrl
 
 
-reportNavigationError : { url : Url, error : Http.Error } -> Effect msg
-reportNavigationError props =
-    ReportNavigationError props
+replaceUrl : String -> Effect msg
+replaceUrl =
+    Inertia.Effect.replaceUrl
+
+
+back : Int -> Effect msg
+back =
+    Inertia.Effect.back
+
+
+forward : Int -> Effect msg
+forward =
+    Inertia.Effect.forward
+
+
+load : String -> Effect msg
+load =
+    Inertia.Effect.load
+
+
+reload : Effect msg
+reload =
+    Inertia.Effect.reload
+
+
+reloadAndSkipCache : Effect msg
+reloadAndSkipCache =
+    Inertia.Effect.reloadAndSkipCache
 
 
 
--- MAPPING
+-- TRANSFORM
 
 
 map : (a -> b) -> Effect a -> Effect b
 map fn effect =
-    case effect of
-        Batch effects ->
-            Batch (List.map (map fn) effects)
+    Inertia.Effect.map (mapCustomEffect fn) fn effect
 
+
+
+-- CUSTOM EFFECTS
+
+
+type CustomEffect msg
+    = ReportJsonDecodeError { component : String, error : Json.Decode.Error }
+    | ReportNavigationError { url : Url, error : Http.Error }
+
+
+mapCustomEffect : (a -> b) -> CustomEffect a -> CustomEffect b
+mapCustomEffect fn customEffect =
+    case customEffect of
+        ReportJsonDecodeError data ->
+            ReportJsonDecodeError data
+
+        ReportNavigationError data ->
+            ReportNavigationError data
+
+
+reportJsonDecodeError : { component : String, error : Json.Decode.Error } -> Effect msg
+reportJsonDecodeError props =
+    Inertia.Effect.custom (ReportJsonDecodeError props)
+
+
+reportNavigationError : { url : Url, error : Http.Error } -> Effect msg
+reportNavigationError props =
+    Inertia.Effect.custom (ReportNavigationError props)
+
+
+switch :
+    CustomEffect msg
+    ->
+        { onReportJsonDecodeError : { component : String, error : Json.Decode.Error } -> value
+        , onReportNavigationError : { url : Url, error : Http.Error } -> value
+        }
+    -> value
+switch effect handlers =
+    case effect of
         ReportJsonDecodeError props ->
-            ReportJsonDecodeError props
+            handlers.onReportJsonDecodeError props
 
         ReportNavigationError props ->
-            ReportNavigationError props
-
-        Inertia inertiaEffect ->
-            Inertia (Inertia.Effect.map fn inertiaEffect)
+            handlers.onReportNavigationError props

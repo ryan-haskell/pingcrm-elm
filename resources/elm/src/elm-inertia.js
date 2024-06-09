@@ -25,10 +25,10 @@
  * @returns {ElmApp}
  */
 export function createInertiaApp (options = {}) {
-  let pageData = undefined, xsrfToken = undefined
+  let pageObject = undefined, xsrfToken = undefined
   
   // Get initial page data from HTML node
-  try { pageData = JSON.parse(options.node.getAttribute('data-page')) }
+  try { pageObject = JSON.parse(options.node.getAttribute('data-page')) }
   catch (err) { console.error('elm-inertia could not find "data-page" attribute:\n\n' + err) }
 
   // Get XSRF cookie from `document.cookie`
@@ -40,7 +40,7 @@ export function createInertiaApp (options = {}) {
     node: options.node,
     flags: {
       user: options.flags,
-      inertia: { pageData, xsrfToken }
+      inertia: { pageObject, xsrfToken }
     }
   })
 

@@ -2,8 +2,8 @@ module Main exposing (main)
 
 import Effect exposing (Effect)
 import Extra.Http
+import Inertia
 import Inertia.Effect
-import Inertia.Program exposing (Program)
 import Interop
 import Json.Decode
 import Pages
@@ -11,15 +11,22 @@ import Shared
 import Url exposing (Url)
 
 
-main : Program Shared.Model Shared.Msg Pages.Model Pages.Msg
+type alias Model =
+    Inertia.Model Pages.Model Shared.Model
+
+
+type alias Msg =
+    Inertia.Msg Pages.Msg Shared.Msg
+
+
+main : Inertia.Program Model Msg
 main =
-    Inertia.Program.new
+    Inertia.program
         { shared =
             { init = Shared.init
             , update = Shared.update
             , subscriptions = Shared.subscriptions
             , onNavigationError = Shared.onNavigationError
-            , effectToCmd = effectToCmd
             }
         , page =
             { init = Pages.init
@@ -27,63 +34,43 @@ main =
             , subscriptions = Pages.subscriptions
             , view = Pages.view
             , onPropsChanged = Pages.onPropsChanged
-            , effectToCmd = effectToCmd
             }
         , interop =
             { decoder = Interop.decoder
             , onRefreshXsrfToken = Interop.onRefreshXsrfToken
             , onXsrfTokenRefreshed = Interop.onXsrfTokenRefreshed
             }
+        , effect =
+            { fromCustomEffectToCmd = fromCustomEffectToCmd
+            , fromShared = Effect.mapCustomEffect
+            , fromPage = Effect.mapCustomEffect
+            }
         }
 
 
 
--- PERFORMING EFFECTS
+-- PERFORMING CUSTOM EFFECTS
 
 
-type alias Msg =
-    Inertia.Program.Msg Pages.Msg Shared.Msg
-
-
-effectToCmd :
-    { fromInertiaEffect : Inertia.Effect.Effect Msg -> Cmd Msg
-    , fromSharedMsg : Shared.Msg -> Msg
-    , shared : Shared.Model
+fromCustomEffectToCmd :
+    { shared : Shared.Model
     , url : Url
+    , fromSharedMsg : Shared.Msg -> msg
     }
-    -> (someMsg -> Msg)
-    -> Effect someMsg
-    -> Cmd Msg
-effectToCmd props toMsg effect =
-    effect
-        |> Effect.map toMsg
-        |> toCmd props
-
-
-toCmd :
-    { fromInertiaEffect : Inertia.Effect.Effect Msg -> Cmd Msg
-    , fromSharedMsg : Shared.Msg -> Msg
-    , shared : Shared.Model
-    , url : Url
-    }
-    -> Effect Msg
-    -> Cmd Msg
-toCmd props effect =
-    case effect of
-        Effect.Batch effects ->
-            Cmd.batch (List.map (toCmd props) effects)
-
-        Effect.ReportJsonDecodeError data ->
-            Interop.onReportJsonDecodeError
-                { component = data.component
-                , error = Json.Decode.errorToString data.error
-                }
-
-        Effect.ReportNavigationError data ->
-            Interop.onReportNavigationError
-                { url = Url.toString data.url
-                , error = Extra.Http.toUserFriendlyMessage data.error
-                }
-
-        Effect.Inertia inertiaEffect ->
-            props.fromInertiaEffect inertiaEffect
+    -> Effect.CustomEffect msg
+    -> Cmd msg
+fromCustomEffectToCmd props customEffect =
+    Effect.switch customEffect
+        { onReportJsonDecodeError =
+            \data ->
+                Interop.onReportJsonDecodeError
+                    { component = data.component
+                    , error = Json.Decode.errorToString data.error
+                    }
+        , onReportNavigationError =
+            \data ->
+                Interop.onReportNavigationError
+                    { url = Url.toString data.url
+                    , error = Extra.Http.toUserFriendlyMessage data.error
+                    }
+        }
