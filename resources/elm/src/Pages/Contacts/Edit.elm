@@ -1,4 +1,4 @@
-module Page.Organizations.Edit exposing
+module Pages.Contacts.Edit exposing
     ( Props, decoder
     , Model, init, onPropsChanged
     , Msg, update, subscriptions
@@ -18,7 +18,6 @@ import Browser exposing (Document)
 import Components.Form
 import Components.Header
 import Components.RestoreBanner
-import Components.Table
 import Effect exposing (Effect)
 import Extra.Http
 import Extra.Json.Decode
@@ -45,36 +44,41 @@ type alias Props =
     { auth : Auth
     , flash : Flash
     , errors : Errors
-    , organization : Organization
+    , organizations : List Organization
+    , contact : Contact
     }
 
 
 decoder : Json.Decode.Decoder Props
 decoder =
-    Json.Decode.map4 Props
+    Json.Decode.map5 Props
         (Json.Decode.field "auth" Shared.Auth.decoder)
         (Json.Decode.field "flash" Shared.Flash.decoder)
         (Json.Decode.field "errors" errorsDecoder)
-        (Json.Decode.field "organization" organizationDecoder)
+        (Json.Decode.field "organizations" (Json.Decode.list organizationDecoder))
+        (Json.Decode.field "contact" contactDecoder)
 
 
 type alias Errors =
-    { name : Maybe String
+    { firstName : Maybe String
+    , lastName : Maybe String
     , email : Maybe String
     }
 
 
 errorsDecoder : Json.Decode.Decoder Errors
 errorsDecoder =
-    Json.Decode.map2 Errors
-        (Json.Decode.maybe (Json.Decode.field "name" Json.Decode.string))
+    Json.Decode.map3 Errors
+        (Json.Decode.maybe (Json.Decode.field "first_name" Json.Decode.string))
+        (Json.Decode.maybe (Json.Decode.field "last_name" Json.Decode.string))
         (Json.Decode.maybe (Json.Decode.field "email" Json.Decode.string))
 
 
 hasAnError : Errors -> Bool
 hasAnError errors =
     List.any ((/=) Nothing)
-        [ errors.name
+        [ errors.firstName
+        , errors.lastName
         , errors.email
         ]
 
@@ -82,39 +86,29 @@ hasAnError errors =
 type alias Organization =
     { id : Int
     , name : String
-    , address : Maybe String
-    , city : Maybe String
-    , country : Maybe String
-    , email : Maybe String
-    , phone : Maybe String
-    , postalCode : Maybe String
-    , region : Maybe String
-    , deletedAt : Maybe String
-    , contacts : List Contact
     }
 
 
 organizationDecoder : Json.Decode.Decoder Organization
 organizationDecoder =
-    Extra.Json.Decode.object Organization
-        |> Extra.Json.Decode.required "id" Json.Decode.int
-        |> Extra.Json.Decode.required "name" Json.Decode.string
-        |> Extra.Json.Decode.optional "address" Json.Decode.string
-        |> Extra.Json.Decode.optional "city" Json.Decode.string
-        |> Extra.Json.Decode.optional "country" Json.Decode.string
-        |> Extra.Json.Decode.optional "email" Json.Decode.string
-        |> Extra.Json.Decode.optional "phone" Json.Decode.string
-        |> Extra.Json.Decode.optional "postal_code" Json.Decode.string
-        |> Extra.Json.Decode.optional "region" Json.Decode.string
-        |> Extra.Json.Decode.optional "deleted_at" Json.Decode.string
-        |> Extra.Json.Decode.required "contacts" (Json.Decode.list contactDecoder)
+    Json.Decode.map2 Organization
+        (Json.Decode.field "id" Json.Decode.int)
+        (Json.Decode.field "name" Json.Decode.string)
 
 
 type alias Contact =
     { id : Int
-    , name : String
+    , firstName : String
+    , lastName : String
+    , organizationId : Maybe Int
+    , email : Maybe String
     , phone : Maybe String
+    , address : Maybe String
     , city : Maybe String
+    , region : Maybe String
+    , country : Maybe String
+    , postalCode : Maybe String
+    , deletedAt : Maybe String
     }
 
 
@@ -122,9 +116,17 @@ contactDecoder : Json.Decode.Decoder Contact
 contactDecoder =
     Extra.Json.Decode.object Contact
         |> Extra.Json.Decode.required "id" Json.Decode.int
-        |> Extra.Json.Decode.required "name" Json.Decode.string
+        |> Extra.Json.Decode.required "first_name" Json.Decode.string
+        |> Extra.Json.Decode.required "last_name" Json.Decode.string
+        |> Extra.Json.Decode.optional "organization_id" Json.Decode.int
+        |> Extra.Json.Decode.optional "email" Json.Decode.string
         |> Extra.Json.Decode.optional "phone" Json.Decode.string
+        |> Extra.Json.Decode.optional "address" Json.Decode.string
         |> Extra.Json.Decode.optional "city" Json.Decode.string
+        |> Extra.Json.Decode.optional "region" Json.Decode.string
+        |> Extra.Json.Decode.optional "country" Json.Decode.string
+        |> Extra.Json.Decode.optional "postal_code" Json.Decode.string
+        |> Extra.Json.Decode.optional "deleted_at" Json.Decode.string
 
 
 
@@ -134,7 +136,9 @@ contactDecoder =
 type alias Model =
     { sidebar : Layouts.Sidebar.Model
     , isSubmittingForm : Bool
-    , name : String
+    , firstName : String
+    , lastName : String
+    , organizationId : String
     , email : String
     , phone : String
     , address : String
@@ -147,7 +151,9 @@ type alias Model =
 
 
 type Field
-    = Name
+    = FirstName
+    | LastName
+    | OrganizationId
     | Email
     | Phone
     | Address
@@ -161,14 +167,19 @@ init : Shared.Model -> Url -> Props -> ( Model, Effect Msg )
 init shared url props =
     ( { sidebar = Layouts.Sidebar.init { flash = props.flash }
       , isSubmittingForm = False
-      , name = props.organization.name
-      , email = props.organization.email |> Maybe.withDefault ""
-      , phone = props.organization.phone |> Maybe.withDefault ""
-      , address = props.organization.address |> Maybe.withDefault ""
-      , city = props.organization.city |> Maybe.withDefault ""
-      , region = props.organization.region |> Maybe.withDefault ""
-      , country = props.organization.country |> Maybe.withDefault ""
-      , postalCode = props.organization.postalCode |> Maybe.withDefault ""
+      , firstName = props.contact.firstName
+      , lastName = props.contact.lastName
+      , organizationId =
+            props.contact.organizationId
+                |> Maybe.map String.fromInt
+                |> Maybe.withDefault ""
+      , email = props.contact.email |> Maybe.withDefault ""
+      , phone = props.contact.phone |> Maybe.withDefault ""
+      , address = props.contact.address |> Maybe.withDefault ""
+      , city = props.contact.city |> Maybe.withDefault ""
+      , region = props.contact.region |> Maybe.withDefault ""
+      , country = props.contact.country |> Maybe.withDefault ""
+      , postalCode = props.contact.postalCode |> Maybe.withDefault ""
       , errors = props.errors
       }
     , Effect.none
@@ -178,8 +189,8 @@ init shared url props =
 onPropsChanged : Shared.Model -> Url -> Props -> Model -> ( Model, Effect Msg )
 onPropsChanged shared url props model =
     ( { model
-        | errors = props.errors
-        , sidebar = Layouts.Sidebar.withFlash props.flash model.sidebar
+        | sidebar = Layouts.Sidebar.withFlash props.flash model.sidebar
+        , errors = props.errors
       }
     , Effect.none
     )
@@ -192,7 +203,7 @@ onPropsChanged shared url props model =
 type Msg
     = Sidebar Layouts.Sidebar.Msg
     | ChangedInput Field String
-    | SubmittedUpdateForm
+    | ClickedUpdate
     | UpdateResponded (Result Http.Error ())
     | ClickedDelete
     | DeleteResponded (Result Http.Error ())
@@ -211,13 +222,24 @@ update shared url props msg ({ errors } as model) =
                 , toMsg = Sidebar
                 }
 
-        ChangedInput Name value ->
+        ChangedInput FirstName value ->
             ( { model
-                | name = value
-                , errors = { errors | name = Nothing }
+                | firstName = value
+                , errors = { errors | firstName = Nothing }
               }
             , Effect.none
             )
+
+        ChangedInput LastName value ->
+            ( { model
+                | lastName = value
+                , errors = { errors | lastName = Nothing }
+              }
+            , Effect.none
+            )
+
+        ChangedInput OrganizationId value ->
+            ( { model | organizationId = value }, Effect.none )
 
         ChangedInput Email value ->
             ( { model
@@ -245,12 +267,14 @@ update shared url props msg ({ errors } as model) =
         ChangedInput PostalCode value ->
             ( { model | postalCode = value }, Effect.none )
 
-        SubmittedUpdateForm ->
+        ClickedUpdate ->
             let
                 body : Json.Encode.Value
                 body =
                     Json.Encode.object
-                        [ ( "name", E.toStringOrNull model.name )
+                        [ ( "first_name", E.toStringOrNull model.firstName )
+                        , ( "last_name", E.toStringOrNull model.lastName )
+                        , ( "organization_id", E.toIntOrNull model.organizationId )
                         , ( "email", E.toStringOrNull model.email )
                         , ( "phone", E.toStringOrNull model.phone )
                         , ( "address", E.toStringOrNull model.address )
@@ -264,60 +288,14 @@ update shared url props msg ({ errors } as model) =
             , Effect.put
                 { url =
                     Url.Builder.absolute
-                        [ "organizations"
-                        , String.fromInt props.organization.id
+                        [ "contacts"
+                        , String.fromInt props.contact.id
                         ]
                         []
                 , body = Http.jsonBody body
                 , decoder = Json.Decode.succeed ()
                 , onResponse = UpdateResponded
                 }
-            )
-
-        ClickedDelete ->
-            ( model
-            , Effect.delete
-                { url =
-                    Url.Builder.absolute
-                        [ "organizations"
-                        , String.fromInt props.organization.id
-                        ]
-                        []
-                , decoder = Json.Decode.succeed ()
-                , onResponse = DeleteResponded
-                }
-            )
-
-        DeleteResponded (Ok ()) ->
-            ( model, Effect.none )
-
-        DeleteResponded (Err httpError) ->
-            ( { model | sidebar = Layouts.Sidebar.withFlashHttpError httpError model.sidebar }
-            , Effect.none
-            )
-
-        ClickedRestore ->
-            ( model
-            , Effect.put
-                { url =
-                    Url.Builder.absolute
-                        [ "organizations"
-                        , String.fromInt props.organization.id
-                        , "restore"
-                        ]
-                        []
-                , body = Http.emptyBody
-                , decoder = Json.Decode.succeed ()
-                , onResponse = RestoreResponded
-                }
-            )
-
-        RestoreResponded (Ok ()) ->
-            ( model, Effect.none )
-
-        RestoreResponded (Err httpError) ->
-            ( { model | sidebar = Layouts.Sidebar.withFlashHttpError httpError model.sidebar }
-            , Effect.none
             )
 
         UpdateResponded (Ok ()) ->
@@ -333,10 +311,44 @@ update shared url props msg ({ errors } as model) =
             , Effect.none
             )
 
+        ClickedDelete ->
+            ( model
+            , Effect.delete
+                { url = Url.Builder.absolute [ "contacts", String.fromInt props.contact.id ] []
+                , decoder = Json.Decode.succeed ()
+                , onResponse = DeleteResponded
+                }
+            )
 
-showFormError : String -> Props -> Props
-showFormError reason props =
-    { props | flash = { success = Nothing, error = Just reason } }
+        DeleteResponded (Ok ()) ->
+            ( model
+            , Effect.none
+            )
+
+        DeleteResponded (Err httpError) ->
+            ( { model | sidebar = Layouts.Sidebar.withFlashHttpError httpError model.sidebar }
+            , Effect.none
+            )
+
+        ClickedRestore ->
+            ( model
+            , Effect.put
+                { url = Url.Builder.absolute [ "contacts", String.fromInt props.contact.id, "restore" ] []
+                , body = Http.emptyBody
+                , decoder = Json.Decode.succeed ()
+                , onResponse = RestoreResponded
+                }
+            )
+
+        RestoreResponded (Ok ()) ->
+            ( model
+            , Effect.none
+            )
+
+        RestoreResponded (Err httpError) ->
+            ( { model | sidebar = Layouts.Sidebar.withFlashHttpError httpError model.sidebar }
+            , Effect.none
+            )
 
 
 
@@ -361,24 +373,31 @@ view shared url props model =
         , toMsg = Sidebar
         , shared = shared
         , url = url
-        , title = props.organization.name
+        , title = toFullName props.contact
         , user = props.auth.user
         , content =
             [ Components.Header.view
-                { label = "Organizations"
-                , url = "/organizations"
-                , content = props.organization.name
+                { label = "Contacts"
+                , url = "/contacts"
+                , content = toFullName props.contact
                 }
             , Components.RestoreBanner.view
-                { deletedAt = props.organization.deletedAt
-                , noun = "organization"
+                { deletedAt = props.contact.deletedAt
+                , noun = "contact"
                 , onClick = ClickedRestore
                 }
             , viewEditForm props model
-            , viewContactsSection props model
             ]
         , overlays = []
         }
+
+
+toFullName : Contact -> String
+toFullName contact =
+    String.join " "
+        [ contact.firstName
+        , contact.lastName
+        ]
 
 
 
@@ -388,19 +407,40 @@ view shared url props model =
 viewEditForm : Props -> Model -> Html Msg
 viewEditForm props model =
     Components.Form.edit
-        { onUpdate = SubmittedUpdateForm
-        , isDeleted = props.organization.deletedAt /= Nothing
+        { onUpdate = ClickedUpdate
+        , isDeleted = props.contact.deletedAt /= Nothing
         , onDelete = ClickedDelete
-        , noun = "Organization"
+        , noun = "Contact"
         , isSubmittingForm = model.isSubmittingForm
         , inputs =
             [ Components.Form.text
                 { isDisabled = model.isSubmittingForm
-                , id = "name"
-                , label = "Name"
-                , value = model.name
-                , error = model.errors.name
-                , onInput = ChangedInput Name
+                , id = "first_name"
+                , label = "First name"
+                , value = model.firstName
+                , error = model.errors.firstName
+                , onInput = ChangedInput FirstName
+                }
+            , Components.Form.text
+                { isDisabled = model.isSubmittingForm
+                , id = "last_name"
+                , label = "Last name"
+                , value = model.lastName
+                , error = model.errors.lastName
+                , onInput = ChangedInput LastName
+                }
+            , Components.Form.select
+                { isDisabled = model.isSubmittingForm
+                , id = "organization"
+                , label = "Organization"
+                , value = model.organizationId
+                , error = Nothing
+                , onInput = ChangedInput OrganizationId
+                , options =
+                    ( "", "" )
+                        :: List.map
+                            (\org -> ( String.fromInt org.id, org.name ))
+                            props.organizations
                 }
             , Components.Form.text
                 { isDisabled = model.isSubmittingForm
@@ -450,7 +490,8 @@ viewEditForm props model =
                 , error = Nothing
                 , onInput = ChangedInput Country
                 , options =
-                    [ ( "CA", "Canada" )
+                    [ ( "", "" )
+                    , ( "CA", "Canada" )
                     , ( "US", "United States" )
                     ]
                 }
@@ -464,27 +505,3 @@ viewEditForm props model =
                 }
             ]
         }
-
-
-
--- CONTACTS TABLE
-
-
-viewContactsSection : Props -> Model -> Html Msg
-viewContactsSection props model =
-    div []
-        [ h2 [ class "mt-12 text-2xl font-bold" ] [ text "Contacts" ]
-        , div [ class "mt-6" ]
-            [ Components.Table.view
-                { baseUrl = "contacts"
-                , toId = .id
-                , rows = props.organization.contacts
-                , columns =
-                    [ { name = "Name", toValue = .name }
-                    , { name = "City", toValue = .city >> Maybe.withDefault "" }
-                    , { name = "Phone", toValue = .phone >> Maybe.withDefault "" }
-                    ]
-                , noResultsLabel = "No contacts found."
-                }
-            ]
-        ]

@@ -6,7 +6,7 @@ module Effect exposing
     , pushUrl, replaceUrl, back, forward
     , load, reload, reloadAndSkipCache
     , map
-    , CustomEffect, mapCustomEffect, switch
+    , CustomEffect(..), mapCustomEffect
     , reportJsonDecodeError
     , reportNavigationError
     )
@@ -25,7 +25,7 @@ module Effect exposing
 
 @docs map
 
-@docs CustomEffect, mapCustomEffect, switch
+@docs CustomEffect, mapCustomEffect
 @docs reportJsonDecodeError
 @docs reportNavigationError
 
@@ -208,19 +208,3 @@ reportJsonDecodeError props =
 reportNavigationError : { url : Url, error : Http.Error } -> Effect msg
 reportNavigationError props =
     Inertia.Effect.custom (ReportNavigationError props)
-
-
-switch :
-    CustomEffect msg
-    ->
-        { onReportJsonDecodeError : { component : String, error : Json.Decode.Error } -> value
-        , onReportNavigationError : { url : Url, error : Http.Error } -> value
-        }
-    -> value
-switch effect handlers =
-    case effect of
-        ReportJsonDecodeError props ->
-            handlers.onReportJsonDecodeError props
-
-        ReportNavigationError props ->
-            handlers.onReportNavigationError props

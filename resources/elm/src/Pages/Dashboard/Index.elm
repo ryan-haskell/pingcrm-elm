@@ -1,4 +1,4 @@
-module Page.Reports.Index exposing
+module Pages.Dashboard.Index exposing
     ( Props, decoder
     , Model, init, onPropsChanged
     , Msg, update, subscriptions
@@ -62,7 +62,7 @@ init shared url props =
 
 onPropsChanged : Shared.Model -> Url -> Props -> Model -> ( Model, Effect Msg )
 onPropsChanged shared url props model =
-    ( model
+    ( { model | sidebar = Layouts.Sidebar.withFlash props.flash model.sidebar }
     , Effect.none
     )
 
@@ -105,17 +105,18 @@ view shared url props model =
         , toMsg = Sidebar
         , shared = shared
         , url = url
-        , title = "Reports"
+        , title = "Dashboard"
         , user = props.auth.user
         , content =
-            [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Reports" ]
-            , p [ class "mb-4 leading-normal" ]
-                [ text "The \"Reports\" feature is under legal investigation at this time. "
-                ]
-            , p [ class "mb-4 leading-normal" ]
-                [ text "Our legal team would like to notify customers that their report data was not sold to fund our separate venture, \"Hamster Yacht Incorporated\". These allegations are unverified and baseless." ]
+            [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Dashboard" ]
             , p [ class "mb-8 leading-normal" ]
-                [ text "However, it is true that the hamsters have been trained to drive the fleet of mini-yachts. Thank you."
+                [ text "Hey there! Welcome to Ping CRM, a demo app designed to help illustrate how "
+                , a
+                    [ class "text-indigo-500 hover:text-orange-600 underline"
+                    , href "https://inertiajs.com"
+                    ]
+                    [ text "Inertia.js" ]
+                , text " works."
                 ]
             ]
         , overlays = []

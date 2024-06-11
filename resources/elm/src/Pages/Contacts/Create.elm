@@ -1,4 +1,4 @@
-module Page.Contacts.Edit exposing
+module Pages.Contacts.Create exposing
     ( Props, decoder
     , Model, init, onPropsChanged
     , Msg, update, subscriptions
@@ -17,10 +17,8 @@ module Page.Contacts.Edit exposing
 import Browser exposing (Document)
 import Components.Form
 import Components.Header
-import Components.RestoreBanner
 import Effect exposing (Effect)
 import Extra.Http
-import Extra.Json.Decode
 import Extra.Json.Encode as E
 import Html exposing (..)
 import Html.Attributes as Attr exposing (attribute, class, href)
@@ -33,7 +31,6 @@ import Shared
 import Shared.Auth exposing (Auth)
 import Shared.Flash exposing (Flash)
 import Url exposing (Url)
-import Url.Builder
 
 
 
@@ -45,18 +42,16 @@ type alias Props =
     , flash : Flash
     , errors : Errors
     , organizations : List Organization
-    , contact : Contact
     }
 
 
 decoder : Json.Decode.Decoder Props
 decoder =
-    Json.Decode.map5 Props
+    Json.Decode.map4 Props
         (Json.Decode.field "auth" Shared.Auth.decoder)
         (Json.Decode.field "flash" Shared.Flash.decoder)
         (Json.Decode.field "errors" errorsDecoder)
         (Json.Decode.field "organizations" (Json.Decode.list organizationDecoder))
-        (Json.Decode.field "contact" contactDecoder)
 
 
 type alias Errors =
@@ -94,39 +89,6 @@ organizationDecoder =
     Json.Decode.map2 Organization
         (Json.Decode.field "id" Json.Decode.int)
         (Json.Decode.field "name" Json.Decode.string)
-
-
-type alias Contact =
-    { id : Int
-    , firstName : String
-    , lastName : String
-    , organizationId : Maybe Int
-    , email : Maybe String
-    , phone : Maybe String
-    , address : Maybe String
-    , city : Maybe String
-    , region : Maybe String
-    , country : Maybe String
-    , postalCode : Maybe String
-    , deletedAt : Maybe String
-    }
-
-
-contactDecoder : Json.Decode.Decoder Contact
-contactDecoder =
-    Extra.Json.Decode.object Contact
-        |> Extra.Json.Decode.required "id" Json.Decode.int
-        |> Extra.Json.Decode.required "first_name" Json.Decode.string
-        |> Extra.Json.Decode.required "last_name" Json.Decode.string
-        |> Extra.Json.Decode.optional "organization_id" Json.Decode.int
-        |> Extra.Json.Decode.optional "email" Json.Decode.string
-        |> Extra.Json.Decode.optional "phone" Json.Decode.string
-        |> Extra.Json.Decode.optional "address" Json.Decode.string
-        |> Extra.Json.Decode.optional "city" Json.Decode.string
-        |> Extra.Json.Decode.optional "region" Json.Decode.string
-        |> Extra.Json.Decode.optional "country" Json.Decode.string
-        |> Extra.Json.Decode.optional "postal_code" Json.Decode.string
-        |> Extra.Json.Decode.optional "deleted_at" Json.Decode.string
 
 
 
@@ -167,19 +129,16 @@ init : Shared.Model -> Url -> Props -> ( Model, Effect Msg )
 init shared url props =
     ( { sidebar = Layouts.Sidebar.init { flash = props.flash }
       , isSubmittingForm = False
-      , firstName = props.contact.firstName
-      , lastName = props.contact.lastName
-      , organizationId =
-            props.contact.organizationId
-                |> Maybe.map String.fromInt
-                |> Maybe.withDefault ""
-      , email = props.contact.email |> Maybe.withDefault ""
-      , phone = props.contact.phone |> Maybe.withDefault ""
-      , address = props.contact.address |> Maybe.withDefault ""
-      , city = props.contact.city |> Maybe.withDefault ""
-      , region = props.contact.region |> Maybe.withDefault ""
-      , country = props.contact.country |> Maybe.withDefault ""
-      , postalCode = props.contact.postalCode |> Maybe.withDefault ""
+      , firstName = ""
+      , lastName = ""
+      , organizationId = ""
+      , email = ""
+      , phone = ""
+      , address = ""
+      , city = ""
+      , region = ""
+      , country = ""
+      , postalCode = ""
       , errors = props.errors
       }
     , Effect.none
@@ -203,12 +162,8 @@ onPropsChanged shared url props model =
 type Msg
     = Sidebar Layouts.Sidebar.Msg
     | ChangedInput Field String
-    | ClickedUpdate
-    | UpdateResponded (Result Http.Error ())
-    | ClickedDelete
-    | DeleteResponded (Result Http.Error ())
-    | ClickedRestore
-    | RestoreResponded (Result Http.Error ())
+    | SubmittedForm
+    | CreateApiResponded (Result Http.Error Props)
 
 
 update : Shared.Model -> Url -> Props -> Msg -> Model -> ( Model, Effect Msg )
@@ -267,7 +222,7 @@ update shared url props msg ({ errors } as model) =
         ChangedInput PostalCode value ->
             ( { model | postalCode = value }, Effect.none )
 
-        ClickedUpdate ->
+        SubmittedForm ->
             let
                 body : Json.Encode.Value
                 body =
@@ -285,68 +240,24 @@ update shared url props msg ({ errors } as model) =
                         ]
             in
             ( { model | isSubmittingForm = True }
-            , Effect.put
-                { url =
-                    Url.Builder.absolute
-                        [ "contacts"
-                        , String.fromInt props.contact.id
-                        ]
-                        []
+            , Effect.post
+                { url = "/contacts"
                 , body = Http.jsonBody body
-                , decoder = Json.Decode.succeed ()
-                , onResponse = UpdateResponded
+                , decoder = decoder
+                , onResponse = CreateApiResponded
                 }
             )
 
-        UpdateResponded (Ok ()) ->
+        CreateApiResponded (Ok res) ->
             ( { model | isSubmittingForm = False }
             , Effect.none
             )
 
-        UpdateResponded (Err httpError) ->
+        CreateApiResponded (Err httpError) ->
             ( { model
                 | sidebar = Layouts.Sidebar.withFlashHttpError httpError model.sidebar
                 , isSubmittingForm = False
               }
-            , Effect.none
-            )
-
-        ClickedDelete ->
-            ( model
-            , Effect.delete
-                { url = Url.Builder.absolute [ "contacts", String.fromInt props.contact.id ] []
-                , decoder = Json.Decode.succeed ()
-                , onResponse = DeleteResponded
-                }
-            )
-
-        DeleteResponded (Ok ()) ->
-            ( model
-            , Effect.none
-            )
-
-        DeleteResponded (Err httpError) ->
-            ( { model | sidebar = Layouts.Sidebar.withFlashHttpError httpError model.sidebar }
-            , Effect.none
-            )
-
-        ClickedRestore ->
-            ( model
-            , Effect.put
-                { url = Url.Builder.absolute [ "contacts", String.fromInt props.contact.id, "restore" ] []
-                , body = Http.emptyBody
-                , decoder = Json.Decode.succeed ()
-                , onResponse = RestoreResponded
-                }
-            )
-
-        RestoreResponded (Ok ()) ->
-            ( model
-            , Effect.none
-            )
-
-        RestoreResponded (Err httpError) ->
-            ( { model | sidebar = Layouts.Sidebar.withFlashHttpError httpError model.sidebar }
             , Effect.none
             )
 
@@ -373,43 +284,28 @@ view shared url props model =
         , toMsg = Sidebar
         , shared = shared
         , url = url
-        , title = toFullName props.contact
+        , title = "Create Contact"
         , user = props.auth.user
         , content =
             [ Components.Header.view
                 { label = "Contacts"
                 , url = "/contacts"
-                , content = toFullName props.contact
+                , content = "Create"
                 }
-            , Components.RestoreBanner.view
-                { deletedAt = props.contact.deletedAt
-                , noun = "contact"
-                , onClick = ClickedRestore
-                }
-            , viewEditForm props model
+            , viewCreateForm props model
             ]
         , overlays = []
         }
 
 
-toFullName : Contact -> String
-toFullName contact =
-    String.join " "
-        [ contact.firstName
-        , contact.lastName
-        ]
+
+-- CREATE FORM
 
 
-
--- EDIT FORM
-
-
-viewEditForm : Props -> Model -> Html Msg
-viewEditForm props model =
-    Components.Form.edit
-        { onUpdate = ClickedUpdate
-        , isDeleted = props.contact.deletedAt /= Nothing
-        , onDelete = ClickedDelete
+viewCreateForm : Props -> Model -> Html Msg
+viewCreateForm props model =
+    Components.Form.create
+        { onSubmit = SubmittedForm
         , noun = "Contact"
         , isSubmittingForm = model.isSubmittingForm
         , inputs =

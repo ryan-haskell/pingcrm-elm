@@ -1,4 +1,4 @@
-module Page.Users.Index exposing
+module Pages.Organizations.Index exposing
     ( Props, decoder
     , Model, init, onPropsChanged
     , Msg, update, subscriptions
@@ -15,16 +15,20 @@ module Page.Users.Index exposing
 -}
 
 import Browser exposing (Document)
+import Components.Dropdown
+import Components.Icon
 import Components.Table.Paginated
 import Effect exposing (Effect)
 import Html exposing (..)
-import Html.Attributes exposing (attribute, class, href)
+import Html.Attributes as Attr exposing (attribute, class, href)
+import Html.Events
 import Json.Decode
 import Layouts.Sidebar
 import Shared
 import Shared.Auth exposing (Auth)
 import Shared.Flash exposing (Flash)
 import Url exposing (Url)
+import Url.Builder
 
 
 
@@ -34,34 +38,40 @@ import Url exposing (Url)
 type alias Props =
     { auth : Auth
     , flash : Flash
-    , users : List User
+    , organizations : List Organization
+    , lastPage : Int
     }
 
 
 decoder : Json.Decode.Decoder Props
 decoder =
-    Json.Decode.map3 Props
+    Json.Decode.map4 Props
         (Json.Decode.field "auth" Shared.Auth.decoder)
         (Json.Decode.field "flash" Shared.Flash.decoder)
-        (Json.Decode.field "users" (Json.Decode.list userDecoder))
+        (Json.Decode.field "organizations" (Json.Decode.field "data" (Json.Decode.list organizationDecoder)))
+        (Json.Decode.at [ "organizations", "last_page" ] Json.Decode.int)
 
 
-type alias User =
+
+-- Organization
+
+
+type alias Organization =
     { id : Int
     , name : String
-    , email : String
-    , owner : Bool
-    , deleted_at : Maybe String
+    , city : Maybe String
+    , phone : Maybe String
+    , deletedAt : Maybe String
     }
 
 
-userDecoder : Json.Decode.Decoder User
-userDecoder =
-    Json.Decode.map5 User
+organizationDecoder : Json.Decode.Decoder Organization
+organizationDecoder =
+    Json.Decode.map5 Organization
         (Json.Decode.field "id" Json.Decode.int)
         (Json.Decode.field "name" Json.Decode.string)
-        (Json.Decode.field "email" Json.Decode.string)
-        (Json.Decode.field "owner" Json.Decode.bool)
+        (Json.Decode.field "city" (Json.Decode.maybe Json.Decode.string))
+        (Json.Decode.field "phone" (Json.Decode.maybe Json.Decode.string))
         (Json.Decode.field "deleted_at" (Json.Decode.maybe Json.Decode.string))
 
 
@@ -70,8 +80,8 @@ userDecoder =
 
 
 type alias Model =
-    { sidebar : Layouts.Sidebar.Model
-    , table : Components.Table.Paginated.Model
+    { table : Components.Table.Paginated.Model
+    , sidebar : Layouts.Sidebar.Model
     }
 
 
@@ -138,21 +148,21 @@ view shared url props model =
         , toMsg = Sidebar
         , shared = shared
         , url = url
-        , title = "Users"
+        , title = "Organizations"
         , user = props.auth.user
         , content =
-            [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Users" ]
+            [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Organizations" ]
             , Components.Table.Paginated.view
                 { shared = shared
                 , url = url
                 , model = model.table
                 , toMsg = Table
-                , name = "User"
-                , baseUrl = "users"
+                , name = "Organization"
+                , baseUrl = "organizations"
                 , toId = .id
                 , columns = columns
-                , rows = props.users
-                , lastPage = 1
+                , rows = props.organizations
+                , lastPage = props.lastPage
                 }
             ]
         , overlays =
@@ -161,23 +171,15 @@ view shared url props model =
                 , url = url
                 , model = model.table
                 , toMsg = Table
-                , baseUrl = "users"
+                , baseUrl = "organizations"
                 }
             ]
         }
 
 
-columns : List (Components.Table.Paginated.Column User)
+columns : List (Components.Table.Paginated.Column Organization)
 columns =
     [ { name = "Name", toValue = .name }
-    , { name = "Email", toValue = .email }
-    , { name = "Role"
-      , toValue =
-            \user ->
-                if user.owner then
-                    "Owner"
-
-                else
-                    "User"
-      }
+    , { name = "City", toValue = .city >> Maybe.withDefault "" }
+    , { name = "Phone", toValue = .phone >> Maybe.withDefault "" }
     ]

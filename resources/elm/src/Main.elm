@@ -6,17 +6,17 @@ import Inertia
 import Inertia.Effect
 import Interop
 import Json.Decode
-import Page
+import Pages
 import Shared
 import Url exposing (Url)
 
 
 type alias Model =
-    Inertia.Model Page.Model Shared.Model
+    Inertia.Model Pages.Model Shared.Model
 
 
 type alias Msg =
-    Inertia.Msg Page.Msg Shared.Msg
+    Inertia.Msg Pages.Msg Shared.Msg
 
 
 main : Inertia.Program Model Msg
@@ -29,11 +29,11 @@ main =
             , onNavigationError = Shared.onNavigationError
             }
         , page =
-            { init = Page.init
-            , update = Page.update
-            , subscriptions = Page.subscriptions
-            , view = Page.view
-            , onPropsChanged = Page.onPropsChanged
+            { init = Pages.init
+            , update = Pages.update
+            , subscriptions = Pages.subscriptions
+            , view = Pages.view
+            , onPropsChanged = Pages.onPropsChanged
             }
         , interop =
             { decoder = Interop.decoder
@@ -60,17 +60,15 @@ fromCustomEffectToCmd :
     -> Effect.CustomEffect msg
     -> Cmd msg
 fromCustomEffectToCmd props customEffect =
-    Effect.switch customEffect
-        { onReportJsonDecodeError =
-            \data ->
-                Interop.onReportJsonDecodeError
-                    { component = data.component
-                    , error = Json.Decode.errorToString data.error
-                    }
-        , onReportNavigationError =
-            \data ->
-                Interop.onReportNavigationError
-                    { url = Url.toString data.url
-                    , error = Extra.Http.toUserFriendlyMessage data.error
-                    }
-        }
+    case customEffect of
+        Effect.ReportJsonDecodeError data ->
+            Interop.onReportJsonDecodeError
+                { component = data.component
+                , error = Json.Decode.errorToString data.error
+                }
+
+        Effect.ReportNavigationError data ->
+            Interop.onReportNavigationError
+                { url = Url.toString data.url
+                , error = Extra.Http.toUserFriendlyMessage data.error
+                }

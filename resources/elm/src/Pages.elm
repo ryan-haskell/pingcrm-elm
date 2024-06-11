@@ -1,157 +1,157 @@
-module Page exposing (Model, Msg, init, onPropsChanged, subscriptions, update, view)
+module Pages exposing (Model, Msg, init, onPropsChanged, subscriptions, update, view)
 
 import Browser exposing (Document)
 import Effect exposing (Effect)
 import Html
 import Inertia exposing (PageObject)
 import Json.Decode exposing (Value)
-import Page.Auth.Login
-import Page.Contacts.Create
-import Page.Contacts.Edit
-import Page.Contacts.Index
-import Page.Dashboard.Index
-import Page.Organizations.Create
-import Page.Organizations.Edit
-import Page.Organizations.Index
-import Page.Reports.Index
-import Page.Users.Create
-import Page.Users.Edit
-import Page.Users.Index
-import Page.Error404
-import Page.Error500
+import Pages.Auth.Login
+import Pages.Contacts.Create
+import Pages.Contacts.Edit
+import Pages.Contacts.Index
+import Pages.Dashboard.Index
+import Pages.Organizations.Create
+import Pages.Organizations.Edit
+import Pages.Organizations.Index
+import Pages.Reports.Index
+import Pages.Users.Create
+import Pages.Users.Edit
+import Pages.Users.Index
+import Pages.Error404
+import Pages.Error500
 import Shared
 import Url exposing (Url)
 
 
 type Model
-    = Model_Auth_Login { props : Page.Auth.Login.Props, model : Page.Auth.Login.Model }
-    | Model_Contacts_Create { props : Page.Contacts.Create.Props, model : Page.Contacts.Create.Model }
-    | Model_Contacts_Edit { props : Page.Contacts.Edit.Props, model : Page.Contacts.Edit.Model }
-    | Model_Contacts_Index { props : Page.Contacts.Index.Props, model : Page.Contacts.Index.Model }
-    | Model_Dashboard_Index { props : Page.Dashboard.Index.Props, model : Page.Dashboard.Index.Model }
-    | Model_Organizations_Create { props : Page.Organizations.Create.Props, model : Page.Organizations.Create.Model }
-    | Model_Organizations_Edit { props : Page.Organizations.Edit.Props, model : Page.Organizations.Edit.Model }
-    | Model_Organizations_Index { props : Page.Organizations.Index.Props, model : Page.Organizations.Index.Model }
-    | Model_Reports_Index { props : Page.Reports.Index.Props, model : Page.Reports.Index.Model }
-    | Model_Users_Create { props : Page.Users.Create.Props, model : Page.Users.Create.Model }
-    | Model_Users_Edit { props : Page.Users.Edit.Props, model : Page.Users.Edit.Model }
-    | Model_Users_Index { props : Page.Users.Index.Props, model : Page.Users.Index.Model }
-    | Model_Error404 { model : Page.Error404.Model }
-    | Model_Error500 { info : Page.Error500.Info, model : Page.Error500.Model }
+    = Model_Auth_Login { props : Pages.Auth.Login.Props, model : Pages.Auth.Login.Model }
+    | Model_Contacts_Create { props : Pages.Contacts.Create.Props, model : Pages.Contacts.Create.Model }
+    | Model_Contacts_Edit { props : Pages.Contacts.Edit.Props, model : Pages.Contacts.Edit.Model }
+    | Model_Contacts_Index { props : Pages.Contacts.Index.Props, model : Pages.Contacts.Index.Model }
+    | Model_Dashboard_Index { props : Pages.Dashboard.Index.Props, model : Pages.Dashboard.Index.Model }
+    | Model_Organizations_Create { props : Pages.Organizations.Create.Props, model : Pages.Organizations.Create.Model }
+    | Model_Organizations_Edit { props : Pages.Organizations.Edit.Props, model : Pages.Organizations.Edit.Model }
+    | Model_Organizations_Index { props : Pages.Organizations.Index.Props, model : Pages.Organizations.Index.Model }
+    | Model_Reports_Index { props : Pages.Reports.Index.Props, model : Pages.Reports.Index.Model }
+    | Model_Users_Create { props : Pages.Users.Create.Props, model : Pages.Users.Create.Model }
+    | Model_Users_Edit { props : Pages.Users.Edit.Props, model : Pages.Users.Edit.Model }
+    | Model_Users_Index { props : Pages.Users.Index.Props, model : Pages.Users.Index.Model }
+    | Model_Error404 { model : Pages.Error404.Model }
+    | Model_Error500 { info : Pages.Error500.Info, model : Pages.Error500.Model }
 
 
 type Msg
-    = Msg_Auth_Login Page.Auth.Login.Msg
-    | Msg_Contacts_Create Page.Contacts.Create.Msg
-    | Msg_Contacts_Edit Page.Contacts.Edit.Msg
-    | Msg_Contacts_Index Page.Contacts.Index.Msg
-    | Msg_Dashboard_Index Page.Dashboard.Index.Msg
-    | Msg_Organizations_Create Page.Organizations.Create.Msg
-    | Msg_Organizations_Edit Page.Organizations.Edit.Msg
-    | Msg_Organizations_Index Page.Organizations.Index.Msg
-    | Msg_Reports_Index Page.Reports.Index.Msg
-    | Msg_Users_Create Page.Users.Create.Msg
-    | Msg_Users_Edit Page.Users.Edit.Msg
-    | Msg_Users_Index Page.Users.Index.Msg
-    | Msg_Error404 Page.Error404.Msg
-    | Msg_Error500 Page.Error500.Msg
+    = Msg_Auth_Login Pages.Auth.Login.Msg
+    | Msg_Contacts_Create Pages.Contacts.Create.Msg
+    | Msg_Contacts_Edit Pages.Contacts.Edit.Msg
+    | Msg_Contacts_Index Pages.Contacts.Index.Msg
+    | Msg_Dashboard_Index Pages.Dashboard.Index.Msg
+    | Msg_Organizations_Create Pages.Organizations.Create.Msg
+    | Msg_Organizations_Edit Pages.Organizations.Edit.Msg
+    | Msg_Organizations_Index Pages.Organizations.Index.Msg
+    | Msg_Reports_Index Pages.Reports.Index.Msg
+    | Msg_Users_Create Pages.Users.Create.Msg
+    | Msg_Users_Edit Pages.Users.Edit.Msg
+    | Msg_Users_Index Pages.Users.Index.Msg
+    | Msg_Error404 Pages.Error404.Msg
+    | Msg_Error500 Pages.Error500.Msg
 
 
 init : Shared.Model -> Url -> PageObject Value -> ( Model, Effect Msg )
 init shared url pageObject =
     case pageObject.component of
-        "Auth_Login" ->
+        "Auth/Login" ->
             initForPage shared url pageObject <|
-                { decoder = Page.Auth.Login.decoder
-                , init = Page.Auth.Login.init
+                { decoder = Pages.Auth.Login.decoder
+                , init = Pages.Auth.Login.init
                 , toModel = Model_Auth_Login
                 , toMsg = Msg_Auth_Login
                 }
 
-        "Contacts_Create" ->
+        "Contacts/Create" ->
             initForPage shared url pageObject <|
-                { decoder = Page.Contacts.Create.decoder
-                , init = Page.Contacts.Create.init
+                { decoder = Pages.Contacts.Create.decoder
+                , init = Pages.Contacts.Create.init
                 , toModel = Model_Contacts_Create
                 , toMsg = Msg_Contacts_Create
                 }
 
-        "Contacts_Edit" ->
+        "Contacts/Edit" ->
             initForPage shared url pageObject <|
-                { decoder = Page.Contacts.Edit.decoder
-                , init = Page.Contacts.Edit.init
+                { decoder = Pages.Contacts.Edit.decoder
+                , init = Pages.Contacts.Edit.init
                 , toModel = Model_Contacts_Edit
                 , toMsg = Msg_Contacts_Edit
                 }
 
-        "Contacts_Index" ->
+        "Contacts/Index" ->
             initForPage shared url pageObject <|
-                { decoder = Page.Contacts.Index.decoder
-                , init = Page.Contacts.Index.init
+                { decoder = Pages.Contacts.Index.decoder
+                , init = Pages.Contacts.Index.init
                 , toModel = Model_Contacts_Index
                 , toMsg = Msg_Contacts_Index
                 }
 
-        "Dashboard_Index" ->
+        "Dashboard/Index" ->
             initForPage shared url pageObject <|
-                { decoder = Page.Dashboard.Index.decoder
-                , init = Page.Dashboard.Index.init
+                { decoder = Pages.Dashboard.Index.decoder
+                , init = Pages.Dashboard.Index.init
                 , toModel = Model_Dashboard_Index
                 , toMsg = Msg_Dashboard_Index
                 }
 
-        "Organizations_Create" ->
+        "Organizations/Create" ->
             initForPage shared url pageObject <|
-                { decoder = Page.Organizations.Create.decoder
-                , init = Page.Organizations.Create.init
+                { decoder = Pages.Organizations.Create.decoder
+                , init = Pages.Organizations.Create.init
                 , toModel = Model_Organizations_Create
                 , toMsg = Msg_Organizations_Create
                 }
 
-        "Organizations_Edit" ->
+        "Organizations/Edit" ->
             initForPage shared url pageObject <|
-                { decoder = Page.Organizations.Edit.decoder
-                , init = Page.Organizations.Edit.init
+                { decoder = Pages.Organizations.Edit.decoder
+                , init = Pages.Organizations.Edit.init
                 , toModel = Model_Organizations_Edit
                 , toMsg = Msg_Organizations_Edit
                 }
 
-        "Organizations_Index" ->
+        "Organizations/Index" ->
             initForPage shared url pageObject <|
-                { decoder = Page.Organizations.Index.decoder
-                , init = Page.Organizations.Index.init
+                { decoder = Pages.Organizations.Index.decoder
+                , init = Pages.Organizations.Index.init
                 , toModel = Model_Organizations_Index
                 , toMsg = Msg_Organizations_Index
                 }
 
-        "Reports_Index" ->
+        "Reports/Index" ->
             initForPage shared url pageObject <|
-                { decoder = Page.Reports.Index.decoder
-                , init = Page.Reports.Index.init
+                { decoder = Pages.Reports.Index.decoder
+                , init = Pages.Reports.Index.init
                 , toModel = Model_Reports_Index
                 , toMsg = Msg_Reports_Index
                 }
 
-        "Users_Create" ->
+        "Users/Create" ->
             initForPage shared url pageObject <|
-                { decoder = Page.Users.Create.decoder
-                , init = Page.Users.Create.init
+                { decoder = Pages.Users.Create.decoder
+                , init = Pages.Users.Create.init
                 , toModel = Model_Users_Create
                 , toMsg = Msg_Users_Create
                 }
 
-        "Users_Edit" ->
+        "Users/Edit" ->
             initForPage shared url pageObject <|
-                { decoder = Page.Users.Edit.decoder
-                , init = Page.Users.Edit.init
+                { decoder = Pages.Users.Edit.decoder
+                , init = Pages.Users.Edit.init
                 , toModel = Model_Users_Edit
                 , toMsg = Msg_Users_Edit
                 }
 
-        "Users_Index" ->
+        "Users/Index" ->
             initForPage shared url pageObject <|
-                { decoder = Page.Users.Index.decoder
-                , init = Page.Users.Index.init
+                { decoder = Pages.Users.Index.decoder
+                , init = Pages.Users.Index.init
                 , toModel = Model_Users_Index
                 , toMsg = Msg_Users_Index
                 }
@@ -159,7 +159,7 @@ init shared url pageObject =
         _ ->
             let
                 ( pageModel, pageEffect ) =
-                    Page.Error404.init shared url
+                    Pages.Error404.init shared url
             in
             ( Model_Error404 { model = pageModel }
             , Effect.map Msg_Error404 pageEffect
@@ -172,7 +172,7 @@ update shared url pageObject msg model =
         ( Msg_Auth_Login pageMsg, Model_Auth_Login page ) ->
             let
                 ( pageModel, pageEffect ) =
-                    Page.Auth.Login.update shared url page.props pageMsg page.model
+                    Pages.Auth.Login.update shared url page.props pageMsg page.model
             in
             ( Model_Auth_Login { page | model = pageModel }
             , Effect.map Msg_Auth_Login pageEffect
@@ -181,7 +181,7 @@ update shared url pageObject msg model =
         ( Msg_Contacts_Create pageMsg, Model_Contacts_Create page ) ->
             let
                 ( pageModel, pageEffect ) =
-                    Page.Contacts.Create.update shared url page.props pageMsg page.model
+                    Pages.Contacts.Create.update shared url page.props pageMsg page.model
             in
             ( Model_Contacts_Create { page | model = pageModel }
             , Effect.map Msg_Contacts_Create pageEffect
@@ -190,7 +190,7 @@ update shared url pageObject msg model =
         ( Msg_Contacts_Edit pageMsg, Model_Contacts_Edit page ) ->
             let
                 ( pageModel, pageEffect ) =
-                    Page.Contacts.Edit.update shared url page.props pageMsg page.model
+                    Pages.Contacts.Edit.update shared url page.props pageMsg page.model
             in
             ( Model_Contacts_Edit { page | model = pageModel }
             , Effect.map Msg_Contacts_Edit pageEffect
@@ -199,7 +199,7 @@ update shared url pageObject msg model =
         ( Msg_Contacts_Index pageMsg, Model_Contacts_Index page ) ->
             let
                 ( pageModel, pageEffect ) =
-                    Page.Contacts.Index.update shared url page.props pageMsg page.model
+                    Pages.Contacts.Index.update shared url page.props pageMsg page.model
             in
             ( Model_Contacts_Index { page | model = pageModel }
             , Effect.map Msg_Contacts_Index pageEffect
@@ -208,7 +208,7 @@ update shared url pageObject msg model =
         ( Msg_Dashboard_Index pageMsg, Model_Dashboard_Index page ) ->
             let
                 ( pageModel, pageEffect ) =
-                    Page.Dashboard.Index.update shared url page.props pageMsg page.model
+                    Pages.Dashboard.Index.update shared url page.props pageMsg page.model
             in
             ( Model_Dashboard_Index { page | model = pageModel }
             , Effect.map Msg_Dashboard_Index pageEffect
@@ -217,7 +217,7 @@ update shared url pageObject msg model =
         ( Msg_Organizations_Create pageMsg, Model_Organizations_Create page ) ->
             let
                 ( pageModel, pageEffect ) =
-                    Page.Organizations.Create.update shared url page.props pageMsg page.model
+                    Pages.Organizations.Create.update shared url page.props pageMsg page.model
             in
             ( Model_Organizations_Create { page | model = pageModel }
             , Effect.map Msg_Organizations_Create pageEffect
@@ -226,7 +226,7 @@ update shared url pageObject msg model =
         ( Msg_Organizations_Edit pageMsg, Model_Organizations_Edit page ) ->
             let
                 ( pageModel, pageEffect ) =
-                    Page.Organizations.Edit.update shared url page.props pageMsg page.model
+                    Pages.Organizations.Edit.update shared url page.props pageMsg page.model
             in
             ( Model_Organizations_Edit { page | model = pageModel }
             , Effect.map Msg_Organizations_Edit pageEffect
@@ -235,7 +235,7 @@ update shared url pageObject msg model =
         ( Msg_Organizations_Index pageMsg, Model_Organizations_Index page ) ->
             let
                 ( pageModel, pageEffect ) =
-                    Page.Organizations.Index.update shared url page.props pageMsg page.model
+                    Pages.Organizations.Index.update shared url page.props pageMsg page.model
             in
             ( Model_Organizations_Index { page | model = pageModel }
             , Effect.map Msg_Organizations_Index pageEffect
@@ -244,7 +244,7 @@ update shared url pageObject msg model =
         ( Msg_Reports_Index pageMsg, Model_Reports_Index page ) ->
             let
                 ( pageModel, pageEffect ) =
-                    Page.Reports.Index.update shared url page.props pageMsg page.model
+                    Pages.Reports.Index.update shared url page.props pageMsg page.model
             in
             ( Model_Reports_Index { page | model = pageModel }
             , Effect.map Msg_Reports_Index pageEffect
@@ -253,7 +253,7 @@ update shared url pageObject msg model =
         ( Msg_Users_Create pageMsg, Model_Users_Create page ) ->
             let
                 ( pageModel, pageEffect ) =
-                    Page.Users.Create.update shared url page.props pageMsg page.model
+                    Pages.Users.Create.update shared url page.props pageMsg page.model
             in
             ( Model_Users_Create { page | model = pageModel }
             , Effect.map Msg_Users_Create pageEffect
@@ -262,7 +262,7 @@ update shared url pageObject msg model =
         ( Msg_Users_Edit pageMsg, Model_Users_Edit page ) ->
             let
                 ( pageModel, pageEffect ) =
-                    Page.Users.Edit.update shared url page.props pageMsg page.model
+                    Pages.Users.Edit.update shared url page.props pageMsg page.model
             in
             ( Model_Users_Edit { page | model = pageModel }
             , Effect.map Msg_Users_Edit pageEffect
@@ -271,7 +271,7 @@ update shared url pageObject msg model =
         ( Msg_Users_Index pageMsg, Model_Users_Index page ) ->
             let
                 ( pageModel, pageEffect ) =
-                    Page.Users.Index.update shared url page.props pageMsg page.model
+                    Pages.Users.Index.update shared url page.props pageMsg page.model
             in
             ( Model_Users_Index { page | model = pageModel }
             , Effect.map Msg_Users_Index pageEffect
@@ -280,7 +280,7 @@ update shared url pageObject msg model =
         ( Msg_Error404 pageMsg, Model_Error404 page ) ->
             let
                 ( pageModel, pageEffect ) =
-                    Page.Error404.update shared url pageMsg page.model
+                    Pages.Error404.update shared url pageMsg page.model
             in
             ( Model_Error404 { page | model = pageModel }
             , Effect.map Msg_Error404 pageEffect
@@ -289,7 +289,7 @@ update shared url pageObject msg model =
         ( Msg_Error500 pageMsg, Model_Error500 page ) ->
             let
                 ( pageModel, pageEffect ) =
-                    Page.Error500.update shared url page.info pageMsg page.model
+                    Pages.Error500.update shared url page.info pageMsg page.model
             in
             ( Model_Error500 { page | model = pageModel }
             , Effect.map Msg_Error500 pageEffect
@@ -303,59 +303,59 @@ subscriptions : Shared.Model -> Url -> PageObject Value -> Model -> Sub Msg
 subscriptions shared url pageObject model =
     case model of
         Model_Auth_Login page ->
-            Page.Auth.Login.subscriptions shared url page.props page.model
+            Pages.Auth.Login.subscriptions shared url page.props page.model
                 |> Sub.map Msg_Auth_Login
 
         Model_Contacts_Create page ->
-            Page.Contacts.Create.subscriptions shared url page.props page.model
+            Pages.Contacts.Create.subscriptions shared url page.props page.model
                 |> Sub.map Msg_Contacts_Create
 
         Model_Contacts_Edit page ->
-            Page.Contacts.Edit.subscriptions shared url page.props page.model
+            Pages.Contacts.Edit.subscriptions shared url page.props page.model
                 |> Sub.map Msg_Contacts_Edit
 
         Model_Contacts_Index page ->
-            Page.Contacts.Index.subscriptions shared url page.props page.model
+            Pages.Contacts.Index.subscriptions shared url page.props page.model
                 |> Sub.map Msg_Contacts_Index
 
         Model_Dashboard_Index page ->
-            Page.Dashboard.Index.subscriptions shared url page.props page.model
+            Pages.Dashboard.Index.subscriptions shared url page.props page.model
                 |> Sub.map Msg_Dashboard_Index
 
         Model_Organizations_Create page ->
-            Page.Organizations.Create.subscriptions shared url page.props page.model
+            Pages.Organizations.Create.subscriptions shared url page.props page.model
                 |> Sub.map Msg_Organizations_Create
 
         Model_Organizations_Edit page ->
-            Page.Organizations.Edit.subscriptions shared url page.props page.model
+            Pages.Organizations.Edit.subscriptions shared url page.props page.model
                 |> Sub.map Msg_Organizations_Edit
 
         Model_Organizations_Index page ->
-            Page.Organizations.Index.subscriptions shared url page.props page.model
+            Pages.Organizations.Index.subscriptions shared url page.props page.model
                 |> Sub.map Msg_Organizations_Index
 
         Model_Reports_Index page ->
-            Page.Reports.Index.subscriptions shared url page.props page.model
+            Pages.Reports.Index.subscriptions shared url page.props page.model
                 |> Sub.map Msg_Reports_Index
 
         Model_Users_Create page ->
-            Page.Users.Create.subscriptions shared url page.props page.model
+            Pages.Users.Create.subscriptions shared url page.props page.model
                 |> Sub.map Msg_Users_Create
 
         Model_Users_Edit page ->
-            Page.Users.Edit.subscriptions shared url page.props page.model
+            Pages.Users.Edit.subscriptions shared url page.props page.model
                 |> Sub.map Msg_Users_Edit
 
         Model_Users_Index page ->
-            Page.Users.Index.subscriptions shared url page.props page.model
+            Pages.Users.Index.subscriptions shared url page.props page.model
                 |> Sub.map Msg_Users_Index
 
         Model_Error404 page ->
-            Page.Error404.subscriptions shared url page.model
+            Pages.Error404.subscriptions shared url page.model
                 |> Sub.map Msg_Error404
 
         Model_Error500 page ->
-            Page.Error500.subscriptions shared url page.info page.model
+            Pages.Error500.subscriptions shared url page.info page.model
                 |> Sub.map Msg_Error500
 
 
@@ -363,59 +363,59 @@ view : Shared.Model -> Url -> PageObject Value -> Model -> Document Msg
 view shared url pageObject model =
     case model of
         Model_Auth_Login page ->
-            Page.Auth.Login.view shared url page.props page.model
+            Pages.Auth.Login.view shared url page.props page.model
                 |> mapDocument Msg_Auth_Login
 
         Model_Contacts_Create page ->
-            Page.Contacts.Create.view shared url page.props page.model
+            Pages.Contacts.Create.view shared url page.props page.model
                 |> mapDocument Msg_Contacts_Create
 
         Model_Contacts_Edit page ->
-            Page.Contacts.Edit.view shared url page.props page.model
+            Pages.Contacts.Edit.view shared url page.props page.model
                 |> mapDocument Msg_Contacts_Edit
 
         Model_Contacts_Index page ->
-            Page.Contacts.Index.view shared url page.props page.model
+            Pages.Contacts.Index.view shared url page.props page.model
                 |> mapDocument Msg_Contacts_Index
 
         Model_Dashboard_Index page ->
-            Page.Dashboard.Index.view shared url page.props page.model
+            Pages.Dashboard.Index.view shared url page.props page.model
                 |> mapDocument Msg_Dashboard_Index
 
         Model_Organizations_Create page ->
-            Page.Organizations.Create.view shared url page.props page.model
+            Pages.Organizations.Create.view shared url page.props page.model
                 |> mapDocument Msg_Organizations_Create
 
         Model_Organizations_Edit page ->
-            Page.Organizations.Edit.view shared url page.props page.model
+            Pages.Organizations.Edit.view shared url page.props page.model
                 |> mapDocument Msg_Organizations_Edit
 
         Model_Organizations_Index page ->
-            Page.Organizations.Index.view shared url page.props page.model
+            Pages.Organizations.Index.view shared url page.props page.model
                 |> mapDocument Msg_Organizations_Index
 
         Model_Reports_Index page ->
-            Page.Reports.Index.view shared url page.props page.model
+            Pages.Reports.Index.view shared url page.props page.model
                 |> mapDocument Msg_Reports_Index
 
         Model_Users_Create page ->
-            Page.Users.Create.view shared url page.props page.model
+            Pages.Users.Create.view shared url page.props page.model
                 |> mapDocument Msg_Users_Create
 
         Model_Users_Edit page ->
-            Page.Users.Edit.view shared url page.props page.model
+            Pages.Users.Edit.view shared url page.props page.model
                 |> mapDocument Msg_Users_Edit
 
         Model_Users_Index page ->
-            Page.Users.Index.view shared url page.props page.model
+            Pages.Users.Index.view shared url page.props page.model
                 |> mapDocument Msg_Users_Index
 
         Model_Error404 page ->
-            Page.Error404.view shared url page.model
+            Pages.Error404.view shared url page.model
                 |> mapDocument Msg_Error404
 
         Model_Error500 page ->
-            Page.Error500.view shared url page.info page.model
+            Pages.Error500.view shared url page.info page.model
                 |> mapDocument Msg_Error500
 
 
@@ -429,96 +429,96 @@ onPropsChanged shared url pageObject model =
     case model of
         Model_Auth_Login page ->
             onPropsChangedForPage shared url pageObject page <|
-                { decoder = Page.Auth.Login.decoder
-                , onPropsChanged = Page.Auth.Login.onPropsChanged
+                { decoder = Pages.Auth.Login.decoder
+                , onPropsChanged = Pages.Auth.Login.onPropsChanged
                 , toModel = Model_Auth_Login
                 , toMsg = Msg_Auth_Login
                 }
 
         Model_Contacts_Create page ->
             onPropsChangedForPage shared url pageObject page <|
-                { decoder = Page.Contacts.Create.decoder
-                , onPropsChanged = Page.Contacts.Create.onPropsChanged
+                { decoder = Pages.Contacts.Create.decoder
+                , onPropsChanged = Pages.Contacts.Create.onPropsChanged
                 , toModel = Model_Contacts_Create
                 , toMsg = Msg_Contacts_Create
                 }
 
         Model_Contacts_Edit page ->
             onPropsChangedForPage shared url pageObject page <|
-                { decoder = Page.Contacts.Edit.decoder
-                , onPropsChanged = Page.Contacts.Edit.onPropsChanged
+                { decoder = Pages.Contacts.Edit.decoder
+                , onPropsChanged = Pages.Contacts.Edit.onPropsChanged
                 , toModel = Model_Contacts_Edit
                 , toMsg = Msg_Contacts_Edit
                 }
 
         Model_Contacts_Index page ->
             onPropsChangedForPage shared url pageObject page <|
-                { decoder = Page.Contacts.Index.decoder
-                , onPropsChanged = Page.Contacts.Index.onPropsChanged
+                { decoder = Pages.Contacts.Index.decoder
+                , onPropsChanged = Pages.Contacts.Index.onPropsChanged
                 , toModel = Model_Contacts_Index
                 , toMsg = Msg_Contacts_Index
                 }
 
         Model_Dashboard_Index page ->
             onPropsChangedForPage shared url pageObject page <|
-                { decoder = Page.Dashboard.Index.decoder
-                , onPropsChanged = Page.Dashboard.Index.onPropsChanged
+                { decoder = Pages.Dashboard.Index.decoder
+                , onPropsChanged = Pages.Dashboard.Index.onPropsChanged
                 , toModel = Model_Dashboard_Index
                 , toMsg = Msg_Dashboard_Index
                 }
 
         Model_Organizations_Create page ->
             onPropsChangedForPage shared url pageObject page <|
-                { decoder = Page.Organizations.Create.decoder
-                , onPropsChanged = Page.Organizations.Create.onPropsChanged
+                { decoder = Pages.Organizations.Create.decoder
+                , onPropsChanged = Pages.Organizations.Create.onPropsChanged
                 , toModel = Model_Organizations_Create
                 , toMsg = Msg_Organizations_Create
                 }
 
         Model_Organizations_Edit page ->
             onPropsChangedForPage shared url pageObject page <|
-                { decoder = Page.Organizations.Edit.decoder
-                , onPropsChanged = Page.Organizations.Edit.onPropsChanged
+                { decoder = Pages.Organizations.Edit.decoder
+                , onPropsChanged = Pages.Organizations.Edit.onPropsChanged
                 , toModel = Model_Organizations_Edit
                 , toMsg = Msg_Organizations_Edit
                 }
 
         Model_Organizations_Index page ->
             onPropsChangedForPage shared url pageObject page <|
-                { decoder = Page.Organizations.Index.decoder
-                , onPropsChanged = Page.Organizations.Index.onPropsChanged
+                { decoder = Pages.Organizations.Index.decoder
+                , onPropsChanged = Pages.Organizations.Index.onPropsChanged
                 , toModel = Model_Organizations_Index
                 , toMsg = Msg_Organizations_Index
                 }
 
         Model_Reports_Index page ->
             onPropsChangedForPage shared url pageObject page <|
-                { decoder = Page.Reports.Index.decoder
-                , onPropsChanged = Page.Reports.Index.onPropsChanged
+                { decoder = Pages.Reports.Index.decoder
+                , onPropsChanged = Pages.Reports.Index.onPropsChanged
                 , toModel = Model_Reports_Index
                 , toMsg = Msg_Reports_Index
                 }
 
         Model_Users_Create page ->
             onPropsChangedForPage shared url pageObject page <|
-                { decoder = Page.Users.Create.decoder
-                , onPropsChanged = Page.Users.Create.onPropsChanged
+                { decoder = Pages.Users.Create.decoder
+                , onPropsChanged = Pages.Users.Create.onPropsChanged
                 , toModel = Model_Users_Create
                 , toMsg = Msg_Users_Create
                 }
 
         Model_Users_Edit page ->
             onPropsChangedForPage shared url pageObject page <|
-                { decoder = Page.Users.Edit.decoder
-                , onPropsChanged = Page.Users.Edit.onPropsChanged
+                { decoder = Pages.Users.Edit.decoder
+                , onPropsChanged = Pages.Users.Edit.onPropsChanged
                 , toModel = Model_Users_Edit
                 , toMsg = Msg_Users_Edit
                 }
 
         Model_Users_Index page ->
             onPropsChangedForPage shared url pageObject page <|
-                { decoder = Page.Users.Index.decoder
-                , onPropsChanged = Page.Users.Index.onPropsChanged
+                { decoder = Pages.Users.Index.decoder
+                , onPropsChanged = Pages.Users.Index.onPropsChanged
                 , toModel = Model_Users_Index
                 , toMsg = Msg_Users_Index
                 }
@@ -566,12 +566,12 @@ onPropsChangedForPage shared url pageObject page options =
 
         Err jsonDecodeError ->
             let
-                info : Page.Error500.Info
+                info : Pages.Error500.Info
                 info =
                     { pageObject = pageObject, error = jsonDecodeError }
 
                 ( pageModel, pageEffect ) =
-                    Page.Error500.init shared url info
+                    Pages.Error500.init shared url info
             in
             ( Model_Error500 { info = info, model = pageModel }
             , Effect.map Msg_Error500 pageEffect
@@ -602,12 +602,12 @@ initForPage shared url pageObject options =
 
         Err jsonDecodeError ->
             let
-                info : Page.Error500.Info
+                info : Pages.Error500.Info
                 info =
                     { pageObject = pageObject, error = jsonDecodeError }
 
                 ( pageModel, pageEffect ) =
-                    Page.Error500.init shared url info
+                    Pages.Error500.init shared url info
             in
             ( Model_Error500 { info = info, model = pageModel }
             , Effect.map Msg_Error500 pageEffect

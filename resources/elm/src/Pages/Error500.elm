@@ -1,4 +1,4 @@
-module Page.Error500 exposing
+module Pages.Error500 exposing
     ( Info
     , Model, Msg
     , init, subscriptions, update, view

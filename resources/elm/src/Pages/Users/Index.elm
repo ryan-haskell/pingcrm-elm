@@ -1,4 +1,4 @@
-module Page.Contacts.Index exposing
+module Pages.Users.Index exposing
     ( Props, decoder
     , Model, init, onPropsChanged
     , Msg, update, subscriptions
@@ -34,38 +34,34 @@ import Url exposing (Url)
 type alias Props =
     { auth : Auth
     , flash : Flash
-    , contacts : List Contact
-    , lastPage : Int
+    , users : List User
     }
 
 
 decoder : Json.Decode.Decoder Props
 decoder =
-    Json.Decode.map4 Props
+    Json.Decode.map3 Props
         (Json.Decode.field "auth" Shared.Auth.decoder)
         (Json.Decode.field "flash" Shared.Flash.decoder)
-        (Json.Decode.field "contacts" (Json.Decode.field "data" (Json.Decode.list contactDecoder)))
-        (Json.Decode.at [ "contacts", "last_page" ] Json.Decode.int)
+        (Json.Decode.field "users" (Json.Decode.list userDecoder))
 
 
-type alias Contact =
+type alias User =
     { id : Int
     , name : String
-    , organization : Maybe String
-    , city : Maybe String
-    , phone : Maybe String
-    , deletedAt : Maybe String
+    , email : String
+    , owner : Bool
+    , deleted_at : Maybe String
     }
 
 
-contactDecoder : Json.Decode.Decoder Contact
-contactDecoder =
-    Json.Decode.map6 Contact
+userDecoder : Json.Decode.Decoder User
+userDecoder =
+    Json.Decode.map5 User
         (Json.Decode.field "id" Json.Decode.int)
         (Json.Decode.field "name" Json.Decode.string)
-        (Json.Decode.field "organization" (Json.Decode.maybe (Json.Decode.field "name" Json.Decode.string)))
-        (Json.Decode.field "city" (Json.Decode.maybe Json.Decode.string))
-        (Json.Decode.field "phone" (Json.Decode.maybe Json.Decode.string))
+        (Json.Decode.field "email" Json.Decode.string)
+        (Json.Decode.field "owner" Json.Decode.bool)
         (Json.Decode.field "deleted_at" (Json.Decode.maybe Json.Decode.string))
 
 
@@ -142,21 +138,21 @@ view shared url props model =
         , toMsg = Sidebar
         , shared = shared
         , url = url
-        , title = "Contacts"
+        , title = "Users"
         , user = props.auth.user
         , content =
-            [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Contacts" ]
+            [ h1 [ class "mb-8 text-3xl font-bold" ] [ text "Users" ]
             , Components.Table.Paginated.view
                 { shared = shared
                 , url = url
                 , model = model.table
                 , toMsg = Table
-                , name = "Contact"
-                , baseUrl = "contacts"
+                , name = "User"
+                , baseUrl = "users"
                 , toId = .id
                 , columns = columns
-                , rows = props.contacts
-                , lastPage = props.lastPage
+                , rows = props.users
+                , lastPage = 1
                 }
             ]
         , overlays =
@@ -165,16 +161,23 @@ view shared url props model =
                 , url = url
                 , model = model.table
                 , toMsg = Table
-                , baseUrl = "contacts"
+                , baseUrl = "users"
                 }
             ]
         }
 
 
-columns : List (Components.Table.Paginated.Column Contact)
+columns : List (Components.Table.Paginated.Column User)
 columns =
     [ { name = "Name", toValue = .name }
-    , { name = "Organization", toValue = .organization >> Maybe.withDefault "" }
-    , { name = "City", toValue = .city >> Maybe.withDefault "" }
-    , { name = "Phone", toValue = .phone >> Maybe.withDefault "" }
+    , { name = "Email", toValue = .email }
+    , { name = "Role"
+      , toValue =
+            \user ->
+                if user.owner then
+                    "Owner"
+
+                else
+                    "User"
+      }
     ]

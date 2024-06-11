@@ -1,4 +1,4 @@
-module Page.Users.Create exposing
+module Pages.Users.Edit exposing
     ( Props, decoder
     , Model, init, onPropsChanged
     , Msg, update, subscriptions
@@ -17,8 +17,10 @@ module Page.Users.Create exposing
 import Browser exposing (Document)
 import Components.Form
 import Components.Header
+import Components.RestoreBanner
 import Effect exposing (Effect)
 import Extra.Http
+import Extra.Json.Decode
 import Extra.Json.Encode as E
 import Html exposing (..)
 import Html.Attributes as Attr exposing (attribute, class, href)
@@ -31,6 +33,7 @@ import Shared
 import Shared.Auth exposing (Auth)
 import Shared.Flash exposing (Flash)
 import Url exposing (Url)
+import Url.Builder
 
 
 
@@ -41,15 +44,17 @@ type alias Props =
     { auth : Auth
     , flash : Flash
     , errors : Errors
+    , user : User
     }
 
 
 decoder : Json.Decode.Decoder Props
 decoder =
-    Json.Decode.map3 Props
+    Json.Decode.map4 Props
         (Json.Decode.field "auth" Shared.Auth.decoder)
         (Json.Decode.field "flash" Shared.Flash.decoder)
         (Json.Decode.field "errors" errorsDecoder)
+        (Json.Decode.field "user" userDecoder)
 
 
 type alias Errors =
@@ -74,6 +79,27 @@ hasAnError errors =
         , errors.lastName
         , errors.email
         ]
+
+
+type alias User =
+    { id : Int
+    , firstName : String
+    , lastName : String
+    , email : String
+    , owner : Bool
+    , deletedAt : Maybe String
+    }
+
+
+userDecoder : Json.Decode.Decoder User
+userDecoder =
+    Extra.Json.Decode.object User
+        |> Extra.Json.Decode.required "id" Json.Decode.int
+        |> Extra.Json.Decode.required "first_name" Json.Decode.string
+        |> Extra.Json.Decode.required "last_name" Json.Decode.string
+        |> Extra.Json.Decode.required "email" Json.Decode.string
+        |> Extra.Json.Decode.required "owner" Json.Decode.bool
+        |> Extra.Json.Decode.optional "deleted_at" Json.Decode.string
 
 
 
@@ -104,11 +130,16 @@ init : Shared.Model -> Url -> Props -> ( Model, Effect Msg )
 init shared url props =
     ( { sidebar = Layouts.Sidebar.init { flash = props.flash }
       , isSubmittingForm = False
-      , firstName = ""
-      , lastName = ""
-      , email = ""
+      , firstName = props.user.firstName
+      , lastName = props.user.lastName
+      , email = props.user.email
       , password = ""
-      , owner = "no"
+      , owner =
+            if props.user.owner then
+                "yes"
+
+            else
+                "no"
       , errors = props.errors
       }
     , Effect.none
@@ -132,8 +163,12 @@ onPropsChanged shared url props model =
 type Msg
     = Sidebar Layouts.Sidebar.Msg
     | ChangedInput Field String
-    | SubmittedForm
-    | CreateApiResponded (Result Http.Error Props)
+    | ClickedUpdate
+    | UpdateResponded (Result Http.Error ())
+    | ClickedDelete
+    | DeleteResponded (Result Http.Error ())
+    | ClickedRestore
+    | RestoreResponded (Result Http.Error ())
 
 
 update : Shared.Model -> Url -> Props -> Msg -> Model -> ( Model, Effect Msg )
@@ -177,7 +212,7 @@ update shared url props msg ({ errors } as model) =
         ChangedInput Owner value ->
             ( { model | owner = value }, Effect.none )
 
-        SubmittedForm ->
+        ClickedUpdate ->
             let
                 body : Json.Encode.Value
                 body =
@@ -193,20 +228,25 @@ update shared url props msg ({ errors } as model) =
                         ]
             in
             ( { model | isSubmittingForm = True }
-            , Effect.post
-                { url = "/users"
+            , Effect.put
+                { url =
+                    Url.Builder.absolute
+                        [ "users"
+                        , String.fromInt props.user.id
+                        ]
+                        []
                 , body = Http.jsonBody body
-                , decoder = decoder
-                , onResponse = CreateApiResponded
+                , decoder = Json.Decode.succeed ()
+                , onResponse = UpdateResponded
                 }
             )
 
-        CreateApiResponded (Ok res) ->
+        UpdateResponded (Ok ()) ->
             ( { model | isSubmittingForm = False }
             , Effect.none
             )
 
-        CreateApiResponded (Err httpError) ->
+        UpdateResponded (Err httpError) ->
             ( { model
                 | sidebar = Layouts.Sidebar.withFlashHttpError httpError model.sidebar
                 , isSubmittingForm = False
@@ -214,10 +254,44 @@ update shared url props msg ({ errors } as model) =
             , Effect.none
             )
 
+        ClickedDelete ->
+            ( model
+            , Effect.delete
+                { url = Url.Builder.absolute [ "users", String.fromInt props.user.id ] []
+                , decoder = Json.Decode.succeed ()
+                , onResponse = DeleteResponded
+                }
+            )
 
-showFormError : String -> Props -> Props
-showFormError reason props =
-    { props | flash = { success = Nothing, error = Just reason } }
+        DeleteResponded (Ok ()) ->
+            ( model
+            , Effect.none
+            )
+
+        DeleteResponded (Err httpError) ->
+            ( { model | sidebar = Layouts.Sidebar.withFlashHttpError httpError model.sidebar }
+            , Effect.none
+            )
+
+        ClickedRestore ->
+            ( model
+            , Effect.put
+                { url = Url.Builder.absolute [ "users", String.fromInt props.user.id, "restore" ] []
+                , body = Http.emptyBody
+                , decoder = Json.Decode.succeed ()
+                , onResponse = RestoreResponded
+                }
+            )
+
+        RestoreResponded (Ok ()) ->
+            ( model
+            , Effect.none
+            )
+
+        RestoreResponded (Err httpError) ->
+            ( { model | sidebar = Layouts.Sidebar.withFlashHttpError httpError model.sidebar }
+            , Effect.none
+            )
 
 
 
@@ -242,28 +316,43 @@ view shared url props model =
         , toMsg = Sidebar
         , shared = shared
         , url = url
-        , title = "Create User"
+        , title = toFullName props.user
         , user = props.auth.user
         , content =
             [ Components.Header.view
                 { label = "Users"
                 , url = "/users"
-                , content = "Create"
+                , content = toFullName props.user
                 }
-            , viewCreateForm props model
+            , Components.RestoreBanner.view
+                { deletedAt = props.user.deletedAt
+                , noun = "user"
+                , onClick = ClickedRestore
+                }
+            , viewEditForm props model
             ]
         , overlays = []
         }
 
 
+toFullName : User -> String
+toFullName user =
+    String.join " "
+        [ user.firstName
+        , user.lastName
+        ]
 
--- CREATE FORM
 
 
-viewCreateForm : Props -> Model -> Html Msg
-viewCreateForm props model =
-    Components.Form.create
-        { onSubmit = SubmittedForm
+-- EDIT FORM
+
+
+viewEditForm : Props -> Model -> Html Msg
+viewEditForm props model =
+    Components.Form.edit
+        { onUpdate = ClickedUpdate
+        , isDeleted = props.user.deletedAt /= Nothing
+        , onDelete = ClickedDelete
         , noun = "User"
         , isSubmittingForm = model.isSubmittingForm
         , inputs =

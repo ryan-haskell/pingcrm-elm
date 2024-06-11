@@ -1,4 +1,4 @@
-module Page.Auth.Login exposing
+module Pages.Auth.Login exposing
     ( Props, decoder
     , Model, init, onPropsChanged
     , Msg, update, subscriptions

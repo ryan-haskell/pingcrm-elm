@@ -1,4 +1,4 @@
-module Page.Contacts.Create exposing
+module Pages.Organizations.Create exposing
     ( Props, decoder
     , Model, init, onPropsChanged
     , Msg, update, subscriptions
@@ -41,54 +41,36 @@ type alias Props =
     { auth : Auth
     , flash : Flash
     , errors : Errors
-    , organizations : List Organization
     }
 
 
 decoder : Json.Decode.Decoder Props
 decoder =
-    Json.Decode.map4 Props
+    Json.Decode.map3 Props
         (Json.Decode.field "auth" Shared.Auth.decoder)
         (Json.Decode.field "flash" Shared.Flash.decoder)
         (Json.Decode.field "errors" errorsDecoder)
-        (Json.Decode.field "organizations" (Json.Decode.list organizationDecoder))
 
 
 type alias Errors =
-    { firstName : Maybe String
-    , lastName : Maybe String
+    { name : Maybe String
     , email : Maybe String
     }
 
 
 errorsDecoder : Json.Decode.Decoder Errors
 errorsDecoder =
-    Json.Decode.map3 Errors
-        (Json.Decode.maybe (Json.Decode.field "first_name" Json.Decode.string))
-        (Json.Decode.maybe (Json.Decode.field "last_name" Json.Decode.string))
+    Json.Decode.map2 Errors
+        (Json.Decode.maybe (Json.Decode.field "name" Json.Decode.string))
         (Json.Decode.maybe (Json.Decode.field "email" Json.Decode.string))
 
 
 hasAnError : Errors -> Bool
 hasAnError errors =
     List.any ((/=) Nothing)
-        [ errors.firstName
-        , errors.lastName
+        [ errors.name
         , errors.email
         ]
-
-
-type alias Organization =
-    { id : Int
-    , name : String
-    }
-
-
-organizationDecoder : Json.Decode.Decoder Organization
-organizationDecoder =
-    Json.Decode.map2 Organization
-        (Json.Decode.field "id" Json.Decode.int)
-        (Json.Decode.field "name" Json.Decode.string)
 
 
 
@@ -98,9 +80,7 @@ organizationDecoder =
 type alias Model =
     { sidebar : Layouts.Sidebar.Model
     , isSubmittingForm : Bool
-    , firstName : String
-    , lastName : String
-    , organizationId : String
+    , name : String
     , email : String
     , phone : String
     , address : String
@@ -113,9 +93,7 @@ type alias Model =
 
 
 type Field
-    = FirstName
-    | LastName
-    | OrganizationId
+    = Name
     | Email
     | Phone
     | Address
@@ -129,9 +107,7 @@ init : Shared.Model -> Url -> Props -> ( Model, Effect Msg )
 init shared url props =
     ( { sidebar = Layouts.Sidebar.init { flash = props.flash }
       , isSubmittingForm = False
-      , firstName = ""
-      , lastName = ""
-      , organizationId = ""
+      , name = ""
       , email = ""
       , phone = ""
       , address = ""
@@ -148,8 +124,8 @@ init shared url props =
 onPropsChanged : Shared.Model -> Url -> Props -> Model -> ( Model, Effect Msg )
 onPropsChanged shared url props model =
     ( { model
-        | sidebar = Layouts.Sidebar.withFlash props.flash model.sidebar
-        , errors = props.errors
+        | errors = props.errors
+        , sidebar = Layouts.Sidebar.withFlash props.flash model.sidebar
       }
     , Effect.none
     )
@@ -177,24 +153,13 @@ update shared url props msg ({ errors } as model) =
                 , toMsg = Sidebar
                 }
 
-        ChangedInput FirstName value ->
+        ChangedInput Name value ->
             ( { model
-                | firstName = value
-                , errors = { errors | firstName = Nothing }
+                | name = value
+                , errors = { errors | name = Nothing }
               }
             , Effect.none
             )
-
-        ChangedInput LastName value ->
-            ( { model
-                | lastName = value
-                , errors = { errors | lastName = Nothing }
-              }
-            , Effect.none
-            )
-
-        ChangedInput OrganizationId value ->
-            ( { model | organizationId = value }, Effect.none )
 
         ChangedInput Email value ->
             ( { model
@@ -227,9 +192,7 @@ update shared url props msg ({ errors } as model) =
                 body : Json.Encode.Value
                 body =
                     Json.Encode.object
-                        [ ( "first_name", E.toStringOrNull model.firstName )
-                        , ( "last_name", E.toStringOrNull model.lastName )
-                        , ( "organization_id", E.toIntOrNull model.organizationId )
+                        [ ( "name", E.toStringOrNull model.name )
                         , ( "email", E.toStringOrNull model.email )
                         , ( "phone", E.toStringOrNull model.phone )
                         , ( "address", E.toStringOrNull model.address )
@@ -241,7 +204,7 @@ update shared url props msg ({ errors } as model) =
             in
             ( { model | isSubmittingForm = True }
             , Effect.post
-                { url = "/contacts"
+                { url = "/organizations"
                 , body = Http.jsonBody body
                 , decoder = decoder
                 , onResponse = CreateApiResponded
@@ -260,6 +223,11 @@ update shared url props msg ({ errors } as model) =
               }
             , Effect.none
             )
+
+
+showFormError : String -> Props -> Props
+showFormError reason props =
+    { props | flash = { success = Nothing, error = Just reason } }
 
 
 
@@ -284,12 +252,12 @@ view shared url props model =
         , toMsg = Sidebar
         , shared = shared
         , url = url
-        , title = "Create Contact"
+        , title = "Create Organization"
         , user = props.auth.user
         , content =
             [ Components.Header.view
-                { label = "Contacts"
-                , url = "/contacts"
+                { label = "Organizations"
+                , url = "/organizations"
                 , content = "Create"
                 }
             , viewCreateForm props model
@@ -306,37 +274,16 @@ viewCreateForm : Props -> Model -> Html Msg
 viewCreateForm props model =
     Components.Form.create
         { onSubmit = SubmittedForm
-        , noun = "Contact"
+        , noun = "Organization"
         , isSubmittingForm = model.isSubmittingForm
         , inputs =
             [ Components.Form.text
                 { isDisabled = model.isSubmittingForm
-                , id = "first_name"
-                , label = "First name"
-                , value = model.firstName
-                , error = model.errors.firstName
-                , onInput = ChangedInput FirstName
-                }
-            , Components.Form.text
-                { isDisabled = model.isSubmittingForm
-                , id = "last_name"
-                , label = "Last name"
-                , value = model.lastName
-                , error = model.errors.lastName
-                , onInput = ChangedInput LastName
-                }
-            , Components.Form.select
-                { isDisabled = model.isSubmittingForm
-                , id = "organization"
-                , label = "Organization"
-                , value = model.organizationId
-                , error = Nothing
-                , onInput = ChangedInput OrganizationId
-                , options =
-                    ( "", "" )
-                        :: List.map
-                            (\org -> ( String.fromInt org.id, org.name ))
-                            props.organizations
+                , id = "name"
+                , label = "Name"
+                , value = model.name
+                , error = model.errors.name
+                , onInput = ChangedInput Name
                 }
             , Components.Form.text
                 { isDisabled = model.isSubmittingForm
@@ -386,8 +333,7 @@ viewCreateForm props model =
                 , error = Nothing
                 , onInput = ChangedInput Country
                 , options =
-                    [ ( "", "" )
-                    , ( "CA", "Canada" )
+                    [ ( "CA", "Canada" )
                     , ( "US", "United States" )
                     ]
                 }
